@@ -776,3 +776,38 @@ button {
   --ink-2: #26232c;
   --ink-3: #3d3a48;
 }
+
+/* ---------------------------------------------------------------- V2: light type on glass */
+/* In V2 the glass bodies are mid-tone pearl-lavender, so text set *on* glass is light
+   (as in the reference), with a soft lavender shadow that keeps large type ≥ 3:1. */
+.on-glass,
+[data-env] .on-glass {
+  --ink: #ffffff;
+  --ink-2: rgba(255, 255, 255, 0.86);
+  --ink-3: rgba(255, 255, 255, 0.72);
+  --line: rgba(255, 255, 255, 0.28);
+  color: var(--ink);
+  text-shadow: 0 1px 2px rgba(46, 40, 92, 0.28), 0 0 14px rgba(46, 40, 92, 0.22);
+}
+
+.on-glass .fc__day.is-active {
+  color: #3b3650;
+  text-shadow: none;
+}
+
+/* V2: day labels sit above their tiny LED icons */
+.fc__day {
+  display: inline-block;
+  transform: translateY(-9px);
+}
+
+.on-glass .fc__place span,
+.on-glass .fc__details dt,
+.on-glass .thermal-card__label,
+.on-glass .thermal-card__cond {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+[data-env='midnight'] .on-glass .fc__day.is-active {
+  color: #ffffff;
+}

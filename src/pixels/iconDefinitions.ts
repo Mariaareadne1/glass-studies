@@ -280,6 +280,13 @@ export function haloSun(level: number): Pixel[] {
  * dotted contours), everything else keeps its silhouette.
  */
 const CLOUD_BODY = hex(CLOUD_PAL.c);
+/** Body colours hollowed out per icon in the LED variant (line-art look). */
+const HOLLOW: Partial<Record<IconName, RGB[]>> = {
+  rain: [CLOUD_BODY],
+  partly: [CLOUD_BODY],
+  leaf: [hex('#5dbf6e'), hex('#a6e6a0')],
+  bloom: [hex('#ff8fbd')],
+};
 const ledCache = new Map<string, Pixel[]>();
 const same = (a: RGB, b: RGB) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) < 0.01;
 
@@ -288,8 +295,9 @@ export function ledPixels(name: IconName): Pixel[] {
   if (hit) return hit;
   const px = iconPixels(name);
   const filled = new Set(px.map((p) => `${p.x},${p.y}`));
+  const hollow = HOLLOW[name] ?? [];
   const out = px.filter((p) => {
-    if (!same(p.color, CLOUD_BODY)) return true;
+    if (!hollow.some((c) => same(p.color, c))) return true;
     const n = [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dy]) => filled.has(`${p.x + dx},${p.y + dy}`));
     return !n;
   });

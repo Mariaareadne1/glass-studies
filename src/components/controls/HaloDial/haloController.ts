@@ -6,6 +6,7 @@ import { EdgeLight } from '../../../motion/edgeLight';
 import { reduced, Spring, SPRINGS } from '../../../motion/spring';
 import { haloSun } from '../../../pixels/iconDefinitions';
 import { drawPixels, PixelMorpher } from '../../../pixels/PixelMorph';
+import { DOT_GAP } from '../shared/ink';
 import { clamp, lerp, mixRGB, rgba } from '../shared/math';
 
 export const HALO = {
@@ -14,8 +15,8 @@ export const HALO = {
   cx: 320,
   cy: 214,
   radius: 156,
-  arc: 122,
-  bead: 17,
+  arc: 136,
+  bead: 15,
   startDeg: 135,
   sweepDeg: 270,
 } as const;
@@ -116,50 +117,81 @@ export class HaloController implements StageController {
     const bx = HALO.cx + Math.cos(theta) * HALO.arc;
     const by = HALO.cy + Math.sin(theta) * HALO.arc;
 
-    let dial = withGlow(CARD, warm, 0.06 + 0.26 * v);
-    dial = withTint(dial, mixRGB([1, 1, 1], warm, 0.5), 0.05 + 0.06 * v);
-    dial = { ...dial, frost: 0.12, bevel: 42, thickness: 30, exposure: lerp(0.97, 1.05, v) };
-    let bead = withGlow(BEAD, warm, 0.3 + 0.3 * v);
+    // V2: near-colourless pearl dial – deep lavender centre so light type reads,
+    // a thick milky wall with strong spectral fringes, warmth rising with value
+    let dial = withTint(CARD, [0.56, 0.57, 0.74], 0.62);
+    dial = withGlow(dial, warm, 0.04 + 0.16 * v);
+    dial = { ...dial, frost: 0.18, bevel: 46, thickness: 30, aberration: 1.0, milk: 0.95, specular: 1.2, halo: 0.25 * v };
+    let bead = withGlow(BEAD, warm, 0.25 + 0.35 * v);
+    bead = { ...bead, thickness: 12, halo: 0.5 * v };
     if (dark) {
       dial = smoked(dial, 0.7);
       bead = smoked(bead, 0.4);
     }
 
+    // a faint orbit of light around the instrument, resting on the studio surface
+    const under = ctx.paint('halo-orbit', (g) => {
+      g.save();
+      g.translate(HALO.cx, HALO.cy + 8);
+      g.rotate(-0.22);
+      g.scale(1, 0.26);
+      const og = g.createLinearGradient(-230, 0, 230, 0);
+      og.addColorStop(0, rgba(WARM_HIGH, 0.0));
+      og.addColorStop(0.18, rgba(WARM_LOW, 0.55 * (0.4 + 0.6 * v)));
+      og.addColorStop(0.55, 'rgba(200,190,255,0.25)');
+      og.addColorStop(0.85, rgba([0.8, 0.85, 1], 0.4));
+      og.addColorStop(1, 'rgba(255,255,255,0)');
+      g.strokeStyle = og;
+      g.lineWidth = 6;
+      g.shadowColor = rgba(WARM_LOW, 0.6);
+      g.shadowBlur = 10 * ctx.pxPerUnit;
+      g.beginPath();
+      g.ellipse(0, 0, 228, 228, 0, 0, Math.PI * 2);
+      g.stroke();
+      g.restore();
+    });
+
     const above = ctx.paint('halo-arc', (g) => {
       const a0 = HALO.startDeg * DEG;
       const a1 = (HALO.startDeg + HALO.sweepDeg) * DEG;
       g.lineCap = 'round';
-      g.lineWidth = 10;
-      g.strokeStyle = dark ? 'rgba(220,220,255,0.12)' : 'rgba(60,50,80,0.10)';
+      // unlit channel: a whisper of white set into the rim
+      g.lineWidth = 6;
+      g.strokeStyle = dark ? 'rgba(220,220,255,0.12)' : 'rgba(255,255,255,0.28)';
       g.beginPath();
       g.arc(HALO.cx, HALO.cy, HALO.arc, a0, a1);
       g.stroke();
       if (v > 0.001) {
+        // white-hot at the start, warming to amber at the handle (stops follow the value)
+        const end = Math.max(0.001, (theta - a0) / (Math.PI * 2));
         const grad = g.createConicGradient(a0, HALO.cx, HALO.cy);
-        grad.addColorStop(0, rgba(WARM_LOW, 0.9));
-        grad.addColorStop(HALO.sweepDeg / 360, rgba(WARM_HIGH, 1));
-        grad.addColorStop(1, rgba(WARM_HIGH, 1));
+        grad.addColorStop(0, 'rgba(250,248,255,0.95)');
+        grad.addColorStop(end * 0.45, rgba([1, 0.95, 0.86], 1));
+        grad.addColorStop(end * 0.8, rgba([1, 0.8, 0.5], 1));
+        grad.addColorStop(end, rgba(WARM_HIGH, 1));
+        grad.addColorStop(Math.min(1, end + 0.001), rgba(WARM_HIGH, 0));
+        // luminous bloom, then a white-hot core
         g.save();
-        g.shadowColor = rgba(warm, 0.8);
-        g.shadowBlur = 14 * ctx.pxPerUnit;
+        g.shadowColor = rgba(warm, 0.9);
+        g.shadowBlur = 18 * ctx.pxPerUnit;
         g.strokeStyle = grad;
+        g.lineWidth = 7;
         g.beginPath();
         g.arc(HALO.cx, HALO.cy, HALO.arc, a0, theta);
         g.stroke();
         g.restore();
-      }
-      // ticks every 10%
-      for (let k = 0; k <= 10; k++) {
-        const a = valueToAngle(k * 10);
-        const lit = k / 10 <= v + 1e-6;
-        g.strokeStyle = lit ? rgba(warm, 0.85) : dark ? 'rgba(220,220,255,0.22)' : 'rgba(60,50,80,0.2)';
+        g.strokeStyle = 'rgba(255,255,255,0.75)';
         g.lineWidth = 2;
         g.beginPath();
-        g.moveTo(HALO.cx + Math.cos(a) * (HALO.arc + 16), HALO.cy + Math.sin(a) * (HALO.arc + 16));
-        g.lineTo(HALO.cx + Math.cos(a) * (HALO.arc + 21), HALO.cy + Math.sin(a) * (HALO.arc + 21));
+        g.arc(HALO.cx, HALO.cy, HALO.arc, a0, theta);
         g.stroke();
       }
-      drawPixels(g, this.sun.states(), HALO.cx, HALO.cy - 40, 4.4, ctx.pxPerUnit, { glow: 3 + 6 * v, glowAlpha: 0.25 + 0.5 * v });
+      drawPixels(g, this.sun.states(), HALO.cx, HALO.cy - 44, 4.2, ctx.pxPerUnit, {
+        gap: DOT_GAP,
+        ink: (c) => mixRGB([1, 1, 1], c, 0.12 * v),
+        glow: 3 + 5 * v,
+        glowAlpha: 0.4 + 0.4 * v,
+      });
     });
 
     // the perimeter glow follows the handle around the dial
@@ -168,7 +200,7 @@ export class HaloController implements StageController {
       hh: HALO.radius,
       radius: HALO.radius,
     });
-    const edge = this.edge.params(mixRGB(warm, [1, 1, 1], 0.2), 0.12 + 0.3 * v);
+    const edge = this.edge.params(mixRGB(warm, [1, 1, 1], 0.3), 0.15 + 0.35 * v);
 
     return {
       env: {
@@ -176,10 +208,11 @@ export class HaloController implements StageController {
         glowColor: warm,
         glowPos: [HALO.cx, HALO.cy - 10],
         glowRadius: 230 + 120 * v,
-        glowStrength: (dark ? 0.08 : 0.06) + 0.38 * v,
-        brightness: dark ? lerp(0.85, 1.12, v) : lerp(0.86, 1.04, v),
+        glowStrength: (dark ? 0.08 : 0.04) + 0.26 * v,
+        brightness: dark ? lerp(0.85, 1.12, v) : lerp(0.9, 1.02, v),
         time: ctx.time,
       },
+      under,
       layers: [
         {
           shapes: [

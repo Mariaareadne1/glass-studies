@@ -3,11 +3,12 @@ import { BEAD, CARD, THUMB, TRACK, smoked, withGlow, withTint } from '../../../g
 import type { GlassScene, RGB } from '../../../glass/types';
 import { EdgeLight } from '../../../motion/edgeLight';
 import { reduced, Spring, SPRINGS } from '../../../motion/spring';
-import { iconPixels } from '../../../pixels/iconDefinitions';
+import { ledPixels, ledPixels as iconPixels } from '../../../pixels/iconDefinitions';
 import { drawPixels } from '../../../pixels/PixelMorph';
 import { DAYS } from '../../../state/controls';
 import type { Day } from '../../../state/controls';
 import { FORECAST } from '../../../state/forecastData';
+import { DOT_GAP, lightInk } from '../shared/ink';
 import { lerp, mixRGB, rampRGB, rgba } from '../shared/math';
 import { SelectorCore } from '../shared/selectorCore';
 
@@ -20,10 +21,10 @@ export const FC = {
   hDetailed: 330,
   hMinimal: 246,
   dayHW: 188,
-  dayHH: 30,
-  dayGap: 52,
+  dayHH: 34,
+  dayGap: 54,
   tileHW: 42,
-  tileHH: 22,
+  tileHH: 28,
   spacing: 92,
   toggleHW: 28,
   toggleHH: 16,
@@ -133,16 +134,20 @@ export class ForecastController implements StageController {
     const tg = this.toggle.x;
     const tx = FC_TOGGLE_X + lerp(-12, 12, tg);
 
-    let card = withGlow(CARD, sky, 0.1);
-    card = withTint(card, mixRGB([1, 1, 1], sky, 0.35), dark ? 0.05 : 0.14);
-    let track = withGlow(TRACK, sky, 0.04);
-    let tileM = withTint(THUMB, mixRGB([1, 1, 1], sky, 0.5), 0.08);
-    tileM = withGlow({ ...tileM, bevel: 14, thickness: 18 }, sky, 0.2);
+    // V2: transparent layered lavender-blue card (light type), frosted day row,
+    // a floating cream tile, and a blue-tinted polished mini toggle
+    let card = withTint(withGlow(CARD, sky, 0.05), [0.58, 0.64, 0.9], 0.5);
+    card = { ...card, frost: 0.34, milk: 0.8, aberration: 0.5 };
+    let track = withTint(withGlow(TRACK, sky, 0.03), [0.8, 0.82, 0.94], 0.34);
+    track = { ...track, frost: 0.4 };
+    let tileM = withTint({ ...THUMB, bevel: 16, thickness: 20, frost: 0.4 }, [0.98, 0.97, 0.96], 0.62);
+    tileM = { ...withGlow(tileM, sky, 0.12), halo: 0.25 };
     let bead = withGlow({ ...BEAD, bevel: 11 }, mixRGB(sky, [1, 1, 1], 0.4), 0.2 + 0.25 * tg);
+    const toggleTrack = withTint({ ...track, bevel: 10, thickness: 8 }, mixRGB([0.8, 0.82, 0.94], [0.36, 0.52, 0.98], tg), 0.4 + 0.25 * tg);
     if (dark) {
-      card = smoked(card, 0.8);
+      card = smoked(card, 0.6);
       track = smoked(track);
-      tileM = smoked(tileM, 0.6);
+      tileM = smoked(tileM, 0.4);
       bead = smoked(bead, 0.4);
     }
 
@@ -164,7 +169,17 @@ export class ForecastController implements StageController {
     });
 
     const above = ctx.paint('fc-icon', (g) => {
-      drawPixels(g, core.morph.states(), FC.cx - FC.hw + 74, FC.top + 112, 5.6, ctx.pxPerUnit, { glow: dark ? 4 : 0 });
+      drawPixels(g, core.morph.states(), FC.cx - FC.hw + 74, FC.top + 112, 5.4, ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk, glow: 3.5, glowAlpha: 0.5 });
+    });
+    // tiny LED icons under each day label, resting in the frosted row
+    const rowIcons = ctx.paint('fc-row-icons', (g) => {
+      FC_SLOTS.forEach((x, i) => {
+        const near = 1 - Math.min(1, Math.abs(x - tile.cx) / FC.spacing);
+        drawPixels(g, ledPixels(FORECAST[DAYS[i]].icon).map((p) => ({ ...p, alpha: 1, size: 1 })), x, dayY + 11, 1.55, ctx.pxPerUnit, {
+          gap: 0.18,
+          ink: near > 0.5 ? (c) => (c[0] > 0.9 && c[2] < 0.55 ? c : [0.42, 0.4, 0.55]) : lightInk,
+        });
+      });
     });
 
     return {
@@ -186,7 +201,7 @@ export class ForecastController implements StageController {
         {
           shapes: [
             { cx: FC.cx, cy: dayY, hw: FC.dayHW, hh: FC.dayHH, radius: FC.dayHH, skew: 0, material: track },
-            { cx: FC_TOGGLE_X, cy: FC_TOGGLE_Y, hw: FC.toggleHW, hh: FC.toggleHH, radius: FC.toggleHH, skew: 0, material: { ...track, bevel: 10, thickness: 8 } },
+            { cx: FC_TOGGLE_X, cy: FC_TOGGLE_Y, hw: FC.toggleHW, hh: FC.toggleHH, radius: FC.toggleHH, skew: 0, material: toggleTrack },
           ],
         },
         {
@@ -194,6 +209,7 @@ export class ForecastController implements StageController {
             { ...tile, material: tileM, edge: core.edgeParams(mixRGB(sky, [1, 1, 1], 0.35)) },
             { cx: tx, cy: FC_TOGGLE_Y, hw: 12, hh: 12, radius: 12, skew: 0, material: bead, edge: this.toggleEdge.params(mixRGB(sky, [1, 1, 1], 0.3)) },
           ],
+          above: rowIcons,
         },
       ],
     };

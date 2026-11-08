@@ -10,7 +10,7 @@ export function useTheme(): [Theme, (t: Theme) => void] {
   const theme = useStore(themeStore);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0e0f17' : '#f3f1ee');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0d0e13' : '#f1eff2');
   }, [theme]);
   return [theme, themeStore.set];
 }

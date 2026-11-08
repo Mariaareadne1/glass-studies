@@ -58,7 +58,7 @@ export function ForecastCard({ env }: { env: EnvironmentKind }) {
   const left = FC.cx - FC.hw + 30;
   return (
     <GlassStage controller={ctrl} width={FC.W} height={FC.H} env={env} label="Forecast weather card" scaleRef={scaleRef} overlayRef={overlayRef}>
-      <div className="fc" data-detailed={detailed} data-testid="forecast" data-day={day}>
+      <div className="fc on-glass" data-detailed={detailed} data-testid="forecast" data-day={day}>
         <p className="fc__place" style={{ left, top: FC.top + 24 }}>
           {SAMPLE_LOCATION}
           <span>Sample forecast · not live</span>

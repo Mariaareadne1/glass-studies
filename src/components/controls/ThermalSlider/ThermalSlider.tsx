@@ -71,7 +71,7 @@ export function ThermalSlider({ env }: { env: EnvironmentKind }) {
         style={{ left: THERMAL.trackX - THERMAL.trackHW, top: THERMAL.cy - THERMAL.trackHH, width: THERMAL.trackHW * 2, height: THERMAL.trackHH * 2, borderRadius: THERMAL.trackHW }}
         onKeyDown={onKey}
       />
-      <div className="readout thermal-card" aria-hidden="true" style={{ left: THERMAL.cardX - 18, top: THERMAL.cy - 52 }}>
+      <div className="readout thermal-card on-glass" aria-hidden="true" style={{ left: THERMAL.cardX - 18, top: THERMAL.cy - 52 }}>
         <span className="thermal-card__label">Set point</span>
         <span className="thermal-card__value" data-testid="thermal-readout">
           {text}

@@ -95,11 +95,11 @@ export function HaloDial({ env }: { env: EnvironmentKind }) {
         style={{ left: HALO.cx - HALO.radius, top: HALO.cy - HALO.radius, width: HALO.radius * 2, height: HALO.radius * 2, borderRadius: '50%' }}
         onKeyDown={onKey}
       />
-      <p className="readout readout--halo" aria-hidden="true" style={{ top: HALO.cy - 4 }} data-testid="halo-readout">
+      <p className="readout readout--halo on-glass" aria-hidden="true" style={{ top: HALO.cy - 4 }} data-testid="halo-readout">
         {shown}
         <span>%</span>
       </p>
-      <p className="readout readout--label" aria-hidden="true" style={{ top: HALO.cy + 62 }}>
+      <p className="readout readout--label on-glass" aria-hidden="true" style={{ top: HALO.cy + 62 }}>
         Brightness
       </p>
     </GlassStage>

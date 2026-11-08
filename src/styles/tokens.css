@@ -3,9 +3,9 @@
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', monospace;
 
-  --page: #f3f1ee;
-  --page-2: #ebe8ee;
-  --plinth: #f7f5f3;
+  --page: #f1eff2;
+  --page-2: #e9e7ee;
+  --plinth: #f5f3f6;
   --plinth-edge: rgba(40, 32, 60, 0.07);
   --ink: #26232c;
   --ink-2: #5d5866;
@@ -40,9 +40,9 @@
 }
 
 :root[data-theme='dark'] {
-  --page: #0e0f17;
-  --page-2: #12131d;
-  --plinth: #141522;
+  --page: #0d0e13;
+  --page-2: #12131a;
+  --plinth: #15161d;
   --plinth-edge: rgba(180, 180, 255, 0.08);
   --ink: #ecebf5;
   --ink-2: #b2b0c4;

@@ -65,8 +65,10 @@ export class WebGLGlassRenderer implements GlassRenderer {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    // alpha: true so a stage that has not drawn its first frame shows the CSS
+    // plinth colour instead of black (the shader always writes alpha = 1)
     const gl = canvas.getContext('webgl2', {
-      alpha: false,
+      alpha: true,
       antialias: false,
       depth: false,
       stencil: false,

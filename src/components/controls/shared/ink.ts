@@ -16,7 +16,7 @@ export const DOT_GAP = 0.24;
 export const lightInk: Ink = (c) => (isWarm(c) ? mixRGB(c, [1, 0.95, 0.85], 0.3) : mixRGB([1, 1, 1], c, 0.12));
 
 /** Mode-tinted light ink: white with a whisper of the mode colour. */
-export const tintedInk = (tint: RGB, k = 0.22): Ink => (c) => (isWarm(c) ? mixRGB(c, [1, 0.95, 0.85], 0.3) : mixRGB([1, 1, 1], tint, k));
+export const tintedInk = (tint: RGB, k = 0.22): Ink => () => mixRGB([1, 1, 1], tint, k);
 
 /** Dark warm ink for bright cream glass (Solar's day thumb). */
 export const darkWarmInk: Ink = (c) => mixRGB([0.43, 0.33, 0.25], c, 0.12);
