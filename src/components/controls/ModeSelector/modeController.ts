@@ -186,7 +186,7 @@ export class ModeController implements StageController {
           ctx.pxPerUnit,
         );
       });
-      drawPixels(g, core.morph.states(), tile.cx, tile.cy, 6.5, ctx.pxPerUnit, {
+      drawPixels(g, core.morph.states(), tile.cx, tile.cy, 6, ctx.pxPerUnit, {
         scaleX: core.deform.along,
         scaleY: core.deform.across,
         map: this.idleMap(),

@@ -155,7 +155,8 @@ export class AtmosphereController implements StageController {
     const dark = ctx.dark;
 
     let track = withGlow(TRACK, color, 0.05);
-    let thumb = withTint(THUMB, mixRGB([1, 1, 1], color, 0.6), 0.09);
+    // a slightly narrower bevel keeps the whole icon inside the clear centre
+    let thumb = withTint({ ...THUMB, bevel: 20 }, mixRGB([1, 1, 1], color, 0.6), 0.09);
     thumb = withGlow(thumb, color, 0.2);
     if (dark) {
       track = smoked(track);
@@ -176,7 +177,7 @@ export class AtmosphereController implements StageController {
           ctx.pxPerUnit,
         );
       });
-      drawPixels(g, core.morph.states(), tile.cx, tile.cy, 6, ctx.pxPerUnit, {
+      drawPixels(g, core.morph.states(), tile.cx, tile.cy, 5, ctx.pxPerUnit, {
         scaleX: core.deform.along,
         scaleY: core.deform.across,
         glow: dark ? 5 : 0,

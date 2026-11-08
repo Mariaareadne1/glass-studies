@@ -7,6 +7,14 @@
     <title>Glass Studies</title>
     <meta name="description" content="An exploration of light, material, and interaction — six interactive liquid-glass instruments." />
     <meta name="theme-color" content="#f3f1ef" />
+    <script>
+      // apply the stored or system theme before first paint (no light flash in dark mode)
+      try {
+        var t = JSON.parse(localStorage.getItem('glass-studies:v1:theme') || 'null');
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

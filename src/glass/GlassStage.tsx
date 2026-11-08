@@ -13,6 +13,8 @@ export interface SceneContext {
   height: number;
   /** Device pixels per design unit. */
   pxPerUnit: number;
+  /** CSS pixels per design unit (for minimum on-screen text sizes). */
+  cssScale: number;
   env: EnvironmentKind;
   dark: boolean;
   time: number;
@@ -151,6 +153,7 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
           width,
           height,
           pxPerUnit,
+          cssScale: sRef.current,
           env: kind,
           dark: kind === 'midnight',
           time,

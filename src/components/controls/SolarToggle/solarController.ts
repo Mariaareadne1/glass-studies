@@ -124,7 +124,8 @@ export class SolarController implements StageController {
     this.morphP.set(clamp(this.pos.x));
     if (this.reducedMotion) this.morphP.snap(clamp(this.pos.x));
     else this.morphP.step(dt);
-    this.morph.progress = smoothstep(0.06, 0.94, this.morphP.x);
+    // reduced motion: no particle flourish – the icon changes cleanly at the midpoint
+    this.morph.progress = this.reducedMotion ? (this.pos.x >= 0.5 ? 1 : 0) : smoothstep(0.06, 0.94, this.morphP.x);
     const settled = this.pos.isSettled(4e-4);
     if (settled && !this.dragging) this.pos.settle();
     const morphSettled = this.morphP.isSettled(1e-3);

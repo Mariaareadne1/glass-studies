@@ -342,7 +342,7 @@ button {
   justify-content: center;
   gap: 2.2rem;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: max(13px, calc(10px / var(--stage-scale, 1)));
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -543,7 +543,7 @@ button {
   height: 20px;
   pointer-events: none;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: max(12px, calc(9.5px / var(--stage-scale, 1)));
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -578,7 +578,7 @@ button {
   right: 0;
   margin: 0;
   text-align: center;
-  font-size: 15px;
+  font-size: max(15px, calc(11px / var(--stage-scale, 1)));
   color: var(--ink-2);
   pointer-events: none;
 }
@@ -617,7 +617,7 @@ button {
   margin: 0;
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: max(11px, calc(9px / var(--stage-scale, 1)));
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -639,7 +639,7 @@ button {
 .thermal-card__label,
 .thermal-card__cond {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: max(11px, calc(8.5px / var(--stage-scale, 1)));
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -680,7 +680,7 @@ button {
 
 .fc__place span {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: max(10.5px, calc(8.5px / var(--stage-scale, 1)));
   font-weight: 400;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -730,7 +730,7 @@ button {
 
 .fc__details dt {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: max(10.5px, calc(8.5px / var(--stage-scale, 1)));
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -751,7 +751,7 @@ button {
 
 .fc__day {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: max(12px, calc(9.5px / var(--stage-scale, 1)));
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-3);

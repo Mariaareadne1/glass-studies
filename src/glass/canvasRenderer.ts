@@ -75,10 +75,13 @@ export class CanvasGlassRenderer implements GlassRenderer {
     }
     this.drawContent(scene.under);
 
+    // Without refraction a frosted body would blur any artwork sitting inside
+    // the glass, so the fallback draws every glass layer first and the
+    // artwork on top, where it stays crisp.
     for (const layer of scene.layers) {
       for (const s of layer.shapes) this.drawShape(s, scene.env.kind === 'midnight');
-      this.drawContent(layer.above);
     }
+    for (const layer of scene.layers) this.drawContent(layer.above);
   }
 
   private drawShape(s: GlassShape, dark: boolean): void {

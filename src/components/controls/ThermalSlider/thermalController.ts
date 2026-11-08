@@ -194,7 +194,7 @@ export class ThermalController implements StageController {
       g.fill();
       g.restore();
       // ticks: every degree, major every five – visible through the glass
-      g.font = '500 11px "Geist Mono Variable", ui-monospace, monospace';
+      g.font = `500 ${Math.max(11, 9 / ctx.cssScale).toFixed(1)}px "Geist Mono Variable", ui-monospace, monospace`;
       g.textAlign = 'right';
       g.textBaseline = 'middle';
       for (let deg = THERMAL_MIN; deg <= THERMAL_MAX; deg++) {

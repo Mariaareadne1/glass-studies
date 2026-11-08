@@ -61,6 +61,11 @@ export function activeLoopCount(): number {
   return raf ? 1 : 0;
 }
 
+/** Diagnostics for QA scripts: whether the shared loop is running and how many stages are awake. */
+if (typeof window !== 'undefined') {
+  (window as unknown as { __glassLoop: unknown }).__glassLoop = () => ({ running: raf !== 0, awake: awake.size, registered: ticks.size });
+}
+
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
