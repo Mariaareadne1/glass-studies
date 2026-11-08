@@ -26,7 +26,7 @@ function hex(h: string): RGB {
 }
 
 const SUN_PAL = { h: '#fff3c4', c: '#ffc23d', o: '#ff9f2a', r: '#ff8a3d' };
-const CLOUD_PAL = { h: '#ffffff', c: '#e6ebf5', s: '#aab6cf' };
+const CLOUD_PAL = { h: '#f3f6fc', c: '#cdd6ea', s: '#8e9cbd' };
 
 export const ICONS = {
   moon: {

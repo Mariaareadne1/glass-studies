@@ -27,7 +27,7 @@ export const SOLAR_TRAVEL = X1 - X0;
 
 /** Release policy: project the thumb forward by its velocity, then snap to the nearer end. */
 export function solarSnapTarget(position: number, velocity: number): 0 | 1 {
-  const projected = position + velocity * 0.12;
+  const projected = position + Math.max(-0.45, Math.min(0.45, velocity * 0.12));
   return projected >= 0.5 ? 1 : 0;
 }
 

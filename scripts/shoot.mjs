@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs';
 
 const args = process.argv.slice(2);
 const pos = args.filter((a) => !a.startsWith('--'));
-const opt = Object.fromEntries(args.filter((a) => a.startsWith('--')).map((a) => a.slice(2).split(/=(.*)/s)));
+const opt = Object.fromEntries(args.filter((a) => a.startsWith('--')).map((a) => { const [k, v] = a.slice(2).split(/=(.*)/s); return [k, v ?? 'true']; }));
 const [path = '/', name = 'shot', w = '1440', h = '960'] = pos;
 const base = opt.base ?? 'http://localhost:5372';
 mkdirSync('qa-shots', { recursive: true });

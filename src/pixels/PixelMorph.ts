@@ -108,7 +108,8 @@ export function drawPixels(
   const sc = scratch.getContext('2d');
   if (!sc) return;
   sc.setTransform(1, 0, 0, 1, 0, 0);
-  sc.clearRect(0, 0, pxSize, pxSize);
+  // clear the whole scratch: bilinear sampling at the copy edge must never pick up older icons
+  sc.clearRect(0, 0, scratch.width, scratch.height);
   sc.setTransform(dpr, 0, 0, dpr, 0, 0);
   const sx = opts.scaleX ?? 1;
   const sy = opts.scaleY ?? 1;

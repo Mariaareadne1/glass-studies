@@ -263,7 +263,7 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     // faint thin-film iridescence along the lit rim, keyed to perimeter position
     float uu = perimU(lp, h, r);
     vec3 film = 0.5 + 0.5 * cos(6.2831 * (uu * 1.5 + facing * 0.25 + vec3(0.0, 0.33, 0.67)));
-    vec3 rimCol = mix(vec3(1.0), film, 0.32);
+    vec3 rimCol = mix(vec3(1.0), film, 0.2);
     refr = refr * (1.0 - rimShade) + vec3(spec * 0.9 + sheen) + rimCol * rimLit * 0.55 + caustic;
     // crisp manufactured hairline
     float line = exp(-pow(sd * uScale / 1.1, 2.0));

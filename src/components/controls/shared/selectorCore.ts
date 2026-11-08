@@ -27,7 +27,9 @@ export interface SelectorTuning {
 
 /** Nearest slot to a position after projecting it forward by velocity. */
 export function nearestSlot(slots: readonly number[], x: number, vx = 0): number {
-  const projected = x + vx * 0.1;
+  // a flick carries the tile forward, but never more than about half a slot
+  const reach = slots.length > 1 ? Math.abs(slots[1] - slots[0]) * 0.45 : 0;
+  const projected = x + Math.max(-reach, Math.min(reach, vx * 0.1));
   let best = 0;
   for (let i = 1; i < slots.length; i++) {
     if (Math.abs(slots[i] - projected) < Math.abs(slots[best] - projected)) best = i;

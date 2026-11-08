@@ -53,7 +53,11 @@ export function usePointerDrag(
       if (active === null) return;
       const id = active;
       active = null;
-      if (el.hasPointerCapture?.(id)) el.releasePointerCapture(id);
+      try {
+        if (el.hasPointerCapture?.(id)) el.releasePointerCapture(id);
+      } catch {
+        // already released
+      }
       h.current.onEnd(lastPoint, cancelled);
     };
 
@@ -64,7 +68,11 @@ export function usePointerDrag(
       if (!h.current.onStart(p, e)) return;
       active = e.pointerId;
       lastPoint = p;
-      el.setPointerCapture?.(e.pointerId);
+      try {
+        el.setPointerCapture?.(e.pointerId);
+      } catch {
+        // pointer already gone (or synthetic) – the drag still works without capture
+      }
       e.preventDefault();
     };
     const move = (e: PointerEvent) => {

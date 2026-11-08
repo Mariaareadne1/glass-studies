@@ -1,7 +1,12 @@
 import type { ComponentType } from 'react';
 import type { EnvironmentKind } from '../glass/types';
 import { SolarToggle } from '../components/controls/SolarToggle/SolarToggle';
-import { solarStore } from '../state/controls';
+import { AtmosphereSelector } from '../components/controls/AtmosphereSelector/AtmosphereSelector';
+import { ForecastCard } from '../components/controls/ForecastCard/ForecastCard';
+import { HaloDial } from '../components/controls/HaloDial/HaloDial';
+import { ModeSelector } from '../components/controls/ModeSelector/ModeSelector';
+import { ThermalSlider } from '../components/controls/ThermalSlider/ThermalSlider';
+import { atmosphereStore, forecastDayStore, forecastDetailStore, haloStore, modeStore, solarStore, thermalStore } from '../state/controls';
 
 export interface StudyDef {
   id: string;
@@ -26,5 +31,60 @@ export const STUDIES: StudyDef[] = [
       'The pixel morph is scrubbed by the thumb itself, so dragging halfway leaves the icon halfway between moon and sun. Release projects the thumb forward by its velocity and snaps to the nearer end.',
     Component: SolarToggle,
     stores: [solarStore],
+  },
+  {
+    id: 'atmosphere',
+    num: '02',
+    title: 'Atmosphere',
+    description: 'A four-position weather selector. One liquid tile stretches between slots while sun rays break into rain, drift into wind and crystallise into snow.',
+    hint: 'Click a slot, drag the tile, or use ← → Home End',
+    detail:
+      'The tile is a single piece of glass on a spring; its stretch is a second spring chasing velocity, so arrival compresses once on its own. Each change sends a short pass of weather through the air around the instrument.',
+    Component: AtmosphereSelector,
+    stores: [atmosphereStore],
+  },
+  {
+    id: 'halo',
+    num: '03',
+    title: 'Halo',
+    description: 'A circular brightness dial. The arc, the glass bead, the sun’s rays and the light on the surface all follow one value.',
+    hint: 'Drag around the dial · wheel or arrow keys when focused',
+    detail:
+      'Angles map onto a 270° sweep. Inside the bottom gap the value clamps to the nearer end, and a jump straight across the gap is refused, so the dial never flips from 0 to 100.',
+    Component: HaloDial,
+    stores: [haloStore],
+  },
+  {
+    id: 'thermal',
+    num: '04',
+    title: 'Thermal',
+    description: 'A vertical temperature slider. The thumb tracks your finger exactly; the mercury, the card and the air warm with it.',
+    hint: 'Drag the thumb or press the track · ↑ ↓ in 0.5° steps',
+    detail:
+      'A demonstration set point between 10 °C and 35 °C, not a measurement. While dragging there is no spring between pointer and thumb, so precise values are easy to hit; keyboard steps glide on a stiff spring.',
+    Component: ThermalSlider,
+    stores: [thermalStore],
+  },
+  {
+    id: 'modes',
+    num: '05',
+    title: 'Modes',
+    description: 'Four modes, each with its own small animation: a leaf bends, a bolt charges, stars drift, a bud opens.',
+    hint: 'Click a mode, drag the tile, or use ← →',
+    detail:
+      'The tile is heavier than Atmosphere’s: it stretches less and leans into its travel. Signature animations play on arrival and while you are engaged with the study, then rest.',
+    Component: ModeSelector,
+    stores: [modeStore],
+  },
+  {
+    id: 'forecast',
+    num: '06',
+    title: 'Forecast',
+    description: 'A compound weather card with three layers of glass: a day selector, a detail toggle that resizes the card, and a changing sky.',
+    hint: 'Pick a day · toggle detailed view (top right)',
+    detail:
+      'Sample data only; there is no weather service. The card height is a spring, and every nested glass surface is derived from it each frame, so refraction and highlights stay attached while it resizes.',
+    Component: ForecastCard,
+    stores: [forecastDayStore, forecastDetailStore],
   },
 ];

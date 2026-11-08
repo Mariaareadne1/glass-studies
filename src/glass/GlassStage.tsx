@@ -23,6 +23,8 @@ export interface SceneContext {
 export interface StageController {
   /** Called once with a function that requests frames. */
   attach?(invalidate: () => void): void;
+  /** Pointer hover or keyboard focus within the stage (drives ambient animation). */
+  setAttention?(engaged: boolean): void;
   /** Advance the simulation by dt seconds. Return true while still moving. */
   step(dt: number, now: number): boolean;
   scene(ctx: SceneContext): GlassScene;
@@ -205,7 +207,22 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
 
   const style = { '--stage-scale': scale, aspectRatio: `${width} / ${height}` } as CSSProperties;
   return (
-    <div ref={hostRef} className={`glass-stage ${className ?? ''}`} style={style} data-env={env}>
+    <div
+      ref={hostRef}
+      className={`glass-stage ${className ?? ''}`}
+      style={style}
+      data-env={env}
+      onPointerEnter={() => {
+        controller.setAttention?.(true);
+        invalidateRef.current?.();
+      }}
+      onPointerLeave={() => controller.setAttention?.(false)}
+      onFocus={() => {
+        controller.setAttention?.(true);
+        invalidateRef.current?.();
+      }}
+      onBlur={() => controller.setAttention?.(false)}
+    >
       <canvas key={backend} ref={canvasRef} className="glass-stage__canvas" aria-hidden="true" />
       <div
         ref={overlayRef}

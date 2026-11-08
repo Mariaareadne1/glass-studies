@@ -18,6 +18,8 @@ interface RadioSlotsProps<T extends string> {
   /** Called whenever the core needs a redraw. */
   invalidate: () => void;
   renderSlot?: (o: T, i: number, checked: boolean) => ReactNode;
+  /** Fixed layout y for the buttons when a parent moves the group with a transform. */
+  yBase?: number;
 }
 
 const TAP_SLOP = 6;
@@ -32,10 +34,11 @@ export function RadioSlots<T extends string>(props: RadioSlotsProps<T>) {
   const press = useRef<{ x: number; mode: 'tile' | 'slot'; moved: boolean } | null>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const slots = core.geo.slots;
-  const y = core.geo.y;
+  const y = props.yBase ?? core.geo.y;
 
   const slotAt = (x: number, yy: number): number => {
-    if (Math.abs(yy - y) > slotHH + 4) return -1;
+    // read y live: a parent (the Forecast card) may move the selector while it animates
+    if (Math.abs(yy - core.geo.y) > slotHH + 4) return -1;
     return slots.findIndex((sx) => Math.abs(x - sx) <= slotHW + 4);
   };
 
@@ -57,6 +60,11 @@ export function RadioSlots<T extends string>(props: RadioSlotsProps<T>) {
       const pr = press.current;
       if (!pr) return;
       if (Math.abs(p.x - pr.x) > TAP_SLOP) pr.moved = true;
+      if (pr.mode === 'slot' && pr.moved) {
+        // pressing the track and sliding grabs the tile under the finger
+        pr.mode = 'tile';
+        core.beginDrag(core.pos.x);
+      }
       if (pr.mode === 'tile' && pr.moved) {
         core.drag(p.x, p.vx);
         invalidate();
