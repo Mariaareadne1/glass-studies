@@ -58,7 +58,7 @@ export const STUDIES: StudyDef[] = [
     id: 'thermal',
     num: '04',
     title: 'Thermal',
-    description: 'A vertical temperature slider. The thumb tracks your finger exactly; the mercury, the card and the air warm with it.',
+    description: 'A vertical temperature slider. The thumb tracks your finger exactly; the capsule, the card and the air warm with it.',
     hint: 'Drag the thumb or press the track · ↑ ↓ in 0.5° steps',
     detail:
       'A demonstration set point between 10 °C and 35 °C, not a measurement. While dragging there is no spring between pointer and thumb, so precise values are easy to hit; keyboard steps glide on a stiff spring.',

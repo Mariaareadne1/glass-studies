@@ -2,6 +2,17 @@
 
 *An exploration of light, material, and interaction.*
 
+> **V2, "Pearl Optics"** (branch `v2/pearl-optics`, tag `v2.0.0`) is a visual and material refinement toward a supplied art-direction sheet: pearl-neutral glass, thick milky rims, studio specular streaks, restrained spectral fringes, coloured halos and LED dot-matrix pixel art. V1 is preserved at tag **`v1-original`**. See [docs/V2_VISUAL_COMPARISON.md](docs/V2_VISUAL_COMPARISON.md).
+>
+> | V1 | V2 |
+> | --- | --- |
+> | ![V1 gallery](docs/media/v1/gallery.jpg) | ![V2 gallery](docs/media/v2/gallery.jpg) |
+>
+> Run both side by side: V2 with `npm run dev` (port **5373**), and V1 from a worktree of the tag:
+> ```bash
+> git worktree add ../glass-studies-v1 v1-original && cd ../glass-studies-v1 && npm install && npx vite --port 5372
+> ```
+
 Glass Studies is an interactive exhibition of six small liquid-glass instruments: a day/night toggle, a weather selector, a brightness dial, a temperature slider, a mode selector and a compound weather card. Every control is live. The glass refracts what lies beneath it on the GPU, thumbs stretch and settle on real springs, a luminous highlight races around rims as they move, and the pixel-art icons rebuild themselves square by square.
 
 ![The collection](docs/media/gallery.jpg)
@@ -18,8 +29,8 @@ Solar transition, sampled every 33 ms with a deterministic clock (`?manual`):
 
 ```bash
 npm install
-npm run dev        # http://localhost:5372
-npm run build && npm run preview   # production build on http://localhost:4372
+npm run dev        # http://localhost:5373 (V2)
+npm run build && npm run preview   # production build on http://localhost:4373
 ```
 
 Useful URL flags:
@@ -84,6 +95,8 @@ Results at the time of writing are in [docs/QA.md](docs/QA.md).
 - [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md): tokens, materials, spring presets and why
 - [docs/QA.md](docs/QA.md): test matrix, measurements, known limitations
 - [docs/CASE_STUDY.md](docs/CASE_STUDY.md): the design and engineering story
+- [docs/V2_VISUAL_COMPARISON.md](docs/V2_VISUAL_COMPARISON.md): V2 gap analysis, comparison rounds, remaining differences
+- [docs/FUTURE_STUDIES.md](docs/FUTURE_STUDIES.md): V3 candidates
 - [PROGRESS.md](PROGRESS.md): milestone log
 
 ## Known limitations

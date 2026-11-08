@@ -52,3 +52,25 @@ Reduced motion uses `reduced()`: critically damped, k ≥ 400, no deformation, n
 ## Pixel art
 
 All artwork is original, on 12×12 grids (`src/pixels/iconDefinitions.ts`): moon, sun, rain, wind, snow, partly cloudy, leaf, bolt, rest (a moon with more stars), bud, bloom, and Halo's procedural sun (a fixed core plus 16 ray segments revealed by brightness). Squares are snapped to device pixels at rest, so edges stay crisp at any DPR.
+
+## V2 "Pearl Optics" material model
+
+V2 changes what `tint` means. It is now the body's **absorption colour**, weighted by glass depth: the thick centre absorbs most and the thin wall least. Two parameters are new:
+
+| Parameter | Meaning |
+| --- | --- |
+| `milk` | Scattering in the rim wall: a bright band from the edge to about 46% of the bevel, lit by direction (`0.28 + 0.72·facing^1.4`), plus a soft separation ring at about 64% |
+| `halo` | Outer glow coloured by `glow`. It tints the surface toward the light colour (a screen blend vanishes on pearl) |
+
+Shader additions: a narrow top-edge streak at t≈0.17, a lower-wall glint, a sharper specular (exponent 60), a rim-confined cyan/lilac/peach fringe scaled by `aberration`, a coloured edge-light bloom with a 3 + 12 unit falloff, cooler and softer shadows, and `uAttention` (hover/focus lifts specular by 35%). Inspector multipliers: `milk` and `bloom`.
+
+| V2 preset | Tint (absorption) | Milk | Notes |
+| --- | --- | --- | --- |
+| `TRACK` | lavender `#B3B5D6` @ 0.46 | 0.8 | Calm vessel, darker than the studio |
+| `THUMB` | cream `#F9F5F1` @ 0.42 | 0.9 | Studies retint it per state (silver night, warm day, raised clear tiles) |
+| `CARD` | lavender-blue @ 0.5 | 0.72 | Carries light type |
+| `BEAD` | pearl @ 0.25 | 0.6 | |
+
+**LED pixel art.** Squares render at 76% of their cell (`DOT_GAP = 0.24`) with inks from `shared/ink.ts`: `lightInk` (white, with the sun kept amber), `tintedInk` (white with a whisper of the mode colour), and `darkWarmInk` (on the creamy day thumb). `ledPixels()` hollows cloud, leaf and petal bodies into line art. Icons sit on the tile surface (the content layer above the glass), so frosted tiles never blur them.
+
+**Pearl palette** (sampled from the reference): page `#F1EFF2`, plinth `#F5F3F6`, lavender `#B3B5D6`, silver `#C4CCDE`, cream `#F9F5F1`. Warm `#FFBC6B`→`#FFA847` and cool `#8C9EFF`→`#9FB8FF` appear only as light.

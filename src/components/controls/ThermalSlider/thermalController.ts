@@ -168,7 +168,7 @@ export class ThermalController implements StageController {
     // wide pill of creamy glass that crosses the capsule; the card is neutral lavender
     let track = withTint(withGlow(TRACK, color, 0.03), [0.97, 0.95, 0.93], 0.26);
     track = { ...track, milk: 0.9, bevel: 24 };
-    let card = withTint(withGlow(CARD, color, 0.05 + 0.08 * Math.abs(k - 0.5) * 2), [0.6, 0.63, 0.86], 0.56);
+    let card = withTint(withGlow(CARD, color, 0.05 + 0.08 * Math.abs(k - 0.5) * 2), [0.5, 0.53, 0.78], 0.64);
     let thumb = withTint({ ...THUMB, bevel: 18, thickness: 26 }, mixRGB([0.97, 0.96, 0.95], color, 0.12), 0.46);
     thumb = { ...withGlow(thumb, color, 0.16), halo: 0.3 };
     if (dark) {

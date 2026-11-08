@@ -787,7 +787,7 @@ button {
   --ink-3: rgba(255, 255, 255, 0.72);
   --line: rgba(255, 255, 255, 0.28);
   color: var(--ink);
-  text-shadow: 0 1px 2px rgba(46, 40, 92, 0.28), 0 0 14px rgba(46, 40, 92, 0.22);
+  text-shadow: 0 1px 2px rgba(40, 34, 84, 0.35), 0 0 16px rgba(40, 34, 84, 0.32);
 }
 
 .on-glass .fc__day.is-active {
@@ -810,4 +810,65 @@ button {
 
 [data-env='midnight'] .on-glass .fc__day.is-active {
   color: #ffffff;
+}
+
+/* ---------------------------------------------------------------- V2 exhibition polish */
+.caption__title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.caption__num {
+  padding-top: 0.22rem;
+}
+
+.caption__desc {
+  margin-top: 0.4rem;
+}
+
+.plinth {
+  transition: box-shadow 420ms var(--ease-out), transform 420ms var(--ease-out);
+}
+
+@media (hover: hover) {
+  .plinth:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 40px 70px -42px rgba(70, 58, 120, 0.42);
+  }
+  :root[data-theme='dark'] .plinth:hover {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 40px 70px -40px rgba(0, 0, 0, 0.9);
+  }
+}
+
+.focus__title {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.caption__title button,
+.focus__title {
+  text-transform: uppercase;
+  letter-spacing: inherit;
+}
+
+/* Visitors who ask for more contrast get dark ink on a light halo inside the glass. */
+@media (prefers-contrast: more) {
+  .on-glass,
+  [data-env] .on-glass {
+    --ink: #17142a;
+    --ink-2: #2a2640;
+    --ink-3: #3a3552;
+    color: var(--ink);
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 0 14px rgba(255, 255, 255, 0.75);
+  }
+  .on-glass .fc__place span,
+  .on-glass .fc__details dt,
+  .on-glass .thermal-card__label,
+  .on-glass .thermal-card__cond {
+    color: #2a2640;
+  }
 }

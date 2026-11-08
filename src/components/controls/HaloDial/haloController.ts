@@ -119,7 +119,7 @@ export class HaloController implements StageController {
 
     // V2: near-colourless pearl dial – deep lavender centre so light type reads,
     // a thick milky wall with strong spectral fringes, warmth rising with value
-    let dial = withTint(CARD, [0.56, 0.57, 0.74], 0.62);
+    let dial = withTint(CARD, [0.46, 0.47, 0.64], 0.7);
     dial = withGlow(dial, warm, 0.04 + 0.16 * v);
     dial = { ...dial, frost: 0.18, bevel: 46, thickness: 30, aberration: 1.0, milk: 0.95, specular: 1.2, halo: 0.25 * v };
     let bead = withGlow(BEAD, warm, 0.25 + 0.35 * v);

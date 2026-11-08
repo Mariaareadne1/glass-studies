@@ -232,6 +232,7 @@ export class WebGLGlassRenderer implements GlassRenderer {
     gl.uniform4f(this.u('uTune'), tuning.refraction, tuning.frost, tuning.aberration, tuning.specular);
     gl.uniform4f(this.u('uTune2'), tuning.edgeLight, tuning.shadowSoftness, tuning.bevel, tuning.thickness);
     gl.uniform1f(this.u('uAttention'), scene.attention ?? 0);
+    gl.uniform2f(this.u('uTune3'), tuning.milk, tuning.bloom);
     gl.uniform1i(this.u('uPrev'), 0);
     gl.uniform1i(this.u('uContent'), 1);
 

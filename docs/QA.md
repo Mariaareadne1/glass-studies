@@ -49,3 +49,21 @@ Issues found and fixed during inspection: thumb overshoot clipping past the rim;
 - Refraction applies to content the stage owns (procedural backdrop and 2D content layers), not to arbitrary page DOM. DOM text sits above the glass.
 - In Atmosphere a faint trace of the sun's rays can appear at the tile's hairline. It is real rim refraction of the centred icon and was reduced, not removed.
 - The performance figures come from headless Chromium on Apple silicon. Low-end GPUs were not measured. The DPR cap of 2 is the only automatic quality reduction.
+
+---
+
+## V2 "Pearl Optics" QA (2026-11-08, branch `v2/pearl-optics`)
+
+| Check | Result |
+| --- | --- |
+| Type check / lint | ✅ clean / 0 errors |
+| Unit and component tests | ✅ 56 / 56 (unchanged suite; V2 is visual, and the semantics are identical) |
+| E2E (production build) | ✅ 17 / 17: Chromium (all six studies), mobile emulation, WebKit and Firefox smoke |
+| Performance (`scripts/perf.mjs`, all six animating, DPR 2) | ✅ mean 16.67 ms, p99 16.8 ms, 0 frames over 33 ms. The loop is idle before and after (the V2 shader terms fit in the same budget on this machine) |
+| Refraction proof | ✅ The checker still bends at every rim under the heavier V2 body (`docs/media/v2/optics.jpg`) |
+| Midnight, Atmosphere, Optics, mobile | Inspected: `docs/media/v2/gallery-dark.jpg`, `mobile.jpg` |
+| Contrast of white type on glass | ⚠️ 2.0–2.6:1 against the glass behind it (measured from screenshots). Mitigated by a text halo and a `prefers-contrast: more` dark-ink mode. Below WCAG AA by design-reference choice |
+
+V1 is preserved at tag `v1-original` (commit `d93527f`). It was served unchanged from a worktree on :5372 during the whole V2 cycle for side-by-side comparison (`scripts/compare.mjs`).
+
+Not verified in V2: physical devices, low-end GPUs, and the full interaction suite on WebKit and Firefox (smoke only, as in V1).

@@ -1,5 +1,16 @@
 # Progress
 
+## V2 "Pearl Optics" (branch v2/pearl-optics)
+- **A Baseline:** V1 tagged `v1-original` (d93527f), served from worktree ../glass-studies-v1 on :5372. V2 dev on :5373 / preview :4373. Gap analysis in docs/V2_VISUAL_COMPARISON.md.
+- **B Material:** depth-weighted absorption body, milky directional rim, top-edge streak, spectral rim fringe, coloured halos and edge bloom, cool soft shadows, hover attention, pearl environment, LED dot-matrix pixels.
+- **C Solar benchmark:** silver night / creamy day thumb, graded capsule light, warm halo, resting amber arc, motion echoes.
+- **D All studies:** Halo, Atmosphere, Thermal, Modes and Forecast in the V2 language.
+- **E Polish:** spaced uppercase titles, plinth hover lift, alpha canvas (no black flash), inspector milk/bloom, prefers-contrast mode.
+- **F QA:** 56 unit + 17 E2E passing, perf p99 16.8 ms, before/after in docs/media/v2/. Tag `v2.0.0`.
+- Remaining discrepancies and measured contrast: docs/V2_VISUAL_COMPARISON.md. V3 ideas: docs/FUTURE_STUDIES.md.
+- Last verified commit before the V2 docs commit: 055a306.
+
+
 ## Current milestone
 M7 – final QA and delivery: complete. Optional demo/recording mode not started.
 

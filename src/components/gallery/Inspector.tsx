@@ -9,6 +9,8 @@ const ROWS: { key: keyof Tuning; label: string; max: number }[] = [
   { key: 'frost', label: 'Frost', max: 4 },
   { key: 'aberration', label: 'Chromatic aberration', max: 4 },
   { key: 'specular', label: 'Specular', max: 3 },
+  { key: 'milk', label: 'Rim milkiness (edge thickness)', max: 2.5 },
+  { key: 'bloom', label: 'Bloom / halo', max: 3 },
   { key: 'edgeLight', label: 'Edge light', max: 3 },
   { key: 'shadowSoftness', label: 'Shadow softness', max: 3 },
   { key: 'stiffness', label: 'Spring stiffness', max: 3 },

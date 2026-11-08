@@ -61,6 +61,7 @@ uniform sampler2D uContent;
 uniform vec4 uTune;  // refraction, frost, aberration, specular multipliers
 uniform vec4 uTune2; // edge light, shadow softness, bevel, thickness multipliers
 uniform float uAttention; // 0..1 hover/focus engagement of the stage
+uniform vec2 uTune3;      // milk, bloom multipliers
 
 out vec4 outColor;
 
@@ -209,7 +210,7 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
   vec4 e = uEdge[i];
   vec4 e2 = uEdge2[i];
   float edgeOn = e.y * uTune2.x;
-  float haloAmt = uMat2[i].w * uGlow[i].a;
+  float haloAmt = uMat2[i].w * uGlow[i].a * uTune3.y;
   if (sd > (haloAmt > 0.001 || edgeOn > 0.001 ? 70.0 : 16.0)) return base;
 
   float px = 1.0 / uScale;
@@ -272,7 +273,7 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     float rimShade = fres * (0.08 + 0.12 * max(-facing, 0.0));
 
     // milky rim: the thick wall scatters light; brighter toward the key light
-    float milk = uMat2[i].z;
+    float milk = uMat2[i].z * uTune3.x;
     float band = 1.0 - smoothstep(0.0, 0.46, t);
     float lit = 0.28 + 0.72 * pow(facing * 0.5 + 0.5, 1.4);
     refr = screenBlend(refr, vec3(1.0, 0.995, 1.0) * milk * band * band * lit * 0.6);
@@ -328,7 +329,7 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
       float along = dl * e.z;
       float core = exp(-pow(dl / max(e.w * 1.5, 1e-3), 2.0));
       float trailv = along < 0.0 ? exp(along / max(e2.w, 1e-3)) * 0.45 : 0.0;
-      float k = max(core, trailv) * edgeOn * (exp(-sd / 3.0) * 0.6 + exp(-sd / 12.0) * 0.35);
+      float k = max(core, trailv) * edgeOn * (exp(-sd / 3.0) * 0.6 + exp(-sd / 12.0) * 0.35 * uTune3.y);
       col = mix(col, col * e2.rgb + e2.rgb * 0.5, clamp(k, 0.0, 1.0));
     }
   }

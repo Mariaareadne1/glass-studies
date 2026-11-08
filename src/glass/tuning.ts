@@ -16,6 +16,10 @@ export interface Tuning {
   stiffness: number;
   damping: number;
   deformation: number;
+  /** V2 rim milkiness multiplier. */
+  milk: number;
+  /** V2 outer halo / bloom multiplier. */
+  bloom: number;
 }
 
 export const TUNING_DEFAULTS: Readonly<Tuning> = Object.freeze({
@@ -30,6 +34,8 @@ export const TUNING_DEFAULTS: Readonly<Tuning> = Object.freeze({
   stiffness: 1,
   damping: 1,
   deformation: 1,
+  milk: 1,
+  bloom: 1,
 });
 
 export const tuning: Tuning = { ...TUNING_DEFAULTS };

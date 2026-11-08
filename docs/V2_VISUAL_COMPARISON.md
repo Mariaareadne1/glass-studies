@@ -32,3 +32,22 @@ Reference: `docs/media/reference-v2.webp`, an AI-generated design sheet supplied
 - The perspective-free "perfect" bloom in the render is approximated with analytic halos, not a full-screen bloom pass (cost).
 
 Rounds of comparison and the remaining gaps are logged at the end of this document.
+
+## Comparison rounds (screenshots in `qa-shots/compare/`, final pairs in `docs/media/v2/compare-*.jpg`)
+
+| Round | Largest discrepancies found | Fix |
+| --- | --- | --- |
+| r1 (Solar) | 1) The rim read as a uniform white plastic bezel. 2) The frosted thumb blurred the icon underneath it. 3) The icons were still saturated solid pixels | A narrower, directionally lit milk band. Icons moved *onto* the tile surface (the layer above the glass). LED dot-matrix inks |
+| r1b (Solar) | 1) The lavender light pool leaked outside the capsule. 2) The day state was missing the warm halo and the amber arc. 3) The ink turned dark before the moon had morphed | Pools clipped to the capsule. Halo and edge bloom switched from screen to *coloured* light (they were invisible on pearl). The ink follows morph progress |
+| r2–r3 (others) | Studies still overrode tints with their V1 values. Halo's arc sat inside the rim, with no warmth gradient. Forecast was dark-on-light | Per-study V2 scenes: the arc set into the rim and graded toward the handle, light type on glass, segment wells, a wide Thermal pill thumb |
+| r4 | 1) The selected tile was not distinct from the segment wells. 2) Modes icons were filled blobs, and the bolt stayed amber. 3) The Forecast card turned muddy mauve (warm sky × lavender) | A raised, brighter tile with a halo. Hollowed line-art icons and white mode ink. A cooler, more transparent card |
+| final | Midnight's active day label vanished on the dark tile. Unrendered stages showed black before their first frame | Midnight label rule. An alpha WebGL canvas (the plinth colour shows until the first frame) |
+
+## Remaining differences from the reference (documented, not fixed)
+
+- **Pixel density.** The reference's dot-matrix icons are about 16×16. V2 keeps V1's 12×12 grids so every morph and test carries over, which makes the dots larger and the shapes slightly chunkier.
+- **Bloom.** The render's glow is a full-image photographic bloom. V2 uses analytic halos per glass shape (no extra full-screen pass), so glows are tighter and never spread across the whole plinth.
+- **Atmosphere and Modes segments.** In the reference each segment is a separate raised glass tile. In V2 the wells are drawn as content inside the track glass (no extra glass layers, to stay within 4 shapes per pass), so they read slightly flatter.
+- **Forecast proportions.** The reference card is wide and short (the day row sits beside the conditions). V2 keeps the V1 card geometry, with details plus a resizing row, because that is what the detail toggle animates.
+- **Halo's orbit and the Thermal "orbit".** Only Halo gets a faint orbit ring. Thermal's decorative rings were left out as a generated-image flourish.
+- **Contrast (measured).** White type on the mid-tone glass is the reference's look, but the glass behind it measures **2.0–2.6:1** against white (Halo dial 2.5–2.6, Forecast card 2.0–2.4). That is below WCAG AA even for large text. A dark text halo improves glyph edges, and `prefers-contrast: more` switches all in-glass type to dark ink on a light halo. Every value is also exposed to assistive technology through ARIA.
