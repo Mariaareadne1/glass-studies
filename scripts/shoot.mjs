@@ -6,7 +6,7 @@ const args = process.argv.slice(2);
 const pos = args.filter((a) => !a.startsWith('--'));
 const opt = Object.fromEntries(args.filter((a) => a.startsWith('--')).map((a) => { const [k, v] = a.slice(2).split(/=(.*)/s); return [k, v ?? 'true']; }));
 const [path = '/', name = 'shot', w = '1440', h = '960'] = pos;
-const base = opt.base ?? 'http://localhost:5372';
+const base = opt.base ?? 'http://localhost:5373';
 mkdirSync('qa-shots', { recursive: true });
 
 const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
@@ -20,6 +20,10 @@ const manual = path.includes('manual');
 if (manual) await page.evaluate(() => window.__glass.advance(34));
 if (opt.do) await page.evaluate(opt.do);
 if (manual) await page.evaluate(() => window.__glass.advance(17));
+if (opt.then) {
+  await page.waitForTimeout(80);
+  await page.evaluate(opt.then);
+}
 const clip = opt.clip ? Object.fromEntries(['x', 'y', 'width', 'height'].map((k, i) => [k, +opt.clip.split(',')[i]])) : undefined;
 const frames = +(opt.frames ?? 1);
 for (let i = 0; i < frames; i++) {

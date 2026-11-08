@@ -44,7 +44,7 @@ uniform vec4 uGeom2[MAXS];  // radius, skew, bevel, thickness
 uniform vec4 uMat[MAXS];    // refraction, frost, aberration, specular
 uniform vec4 uTint[MAXS];
 uniform vec4 uGlow[MAXS];
-uniform vec4 uMat2[MAXS];   // shadow, exposure, -, -
+uniform vec4 uMat2[MAXS];   // shadow, exposure, milk (rim), halo (outer glow)
 uniform vec4 uEdge[MAXS];   // head, intensity, direction, width
 uniform vec4 uEdge2[MAXS];  // rgb, trail
 
@@ -60,6 +60,7 @@ uniform sampler2D uContent;
 // global tuning (inspector)
 uniform vec4 uTune;  // refraction, frost, aberration, specular multipliers
 uniform vec4 uTune2; // edge light, shadow softness, bevel, thickness multipliers
+uniform float uAttention; // 0..1 hover/focus engagement of the stage
 
 out vec4 outColor;
 
@@ -129,13 +130,18 @@ vec3 envColor(vec2 d) {
   vec2 n = d / uSize;
   vec3 col;
   if (uEnvKind == 0) {
-    col = mix(vec3(0.962, 0.955, 0.945), vec3(0.918, 0.912, 0.945), smoothstep(0.0, 1.0, n.y));
-    col += vec3(0.020, 0.016, 0.006) * exp(-dot(n - vec2(0.15, 0.05), n - vec2(0.15, 0.05)) * 6.0);
-    col -= vec3(0.020, 0.018, 0.010) * smoothstep(0.4, 1.2, length((n - 0.5) * vec2(1.2, 1.0)));
-    col += (fbm(d * 0.012 + uTime * 0.02) - 0.5) * 0.018;
+    // Pearl: neutral lavender-pearl studio, soft vignette, faint prismatic streaks
+    col = mix(vec3(0.957, 0.950, 0.957), vec3(0.918, 0.910, 0.940), smoothstep(0.0, 1.0, n.y * 0.8 + n.x * 0.2));
+    col += vec3(0.018, 0.014, 0.010) * exp(-dot(n - vec2(0.3, 0.15), n - vec2(0.3, 0.15)) * 5.0);
+    col -= vec3(0.030, 0.030, 0.012) * smoothstep(0.35, 1.25, length((n - 0.5) * vec2(1.25, 1.0)));
+    float s1 = exp(-pow((n.x * 0.9 + n.y - 0.20) * 16.0, 2.0)) * smoothstep(0.55, 0.0, n.y);
+    float s2 = exp(-pow((n.x * 0.9 + n.y - 1.72) * 13.0, 2.0)) * smoothstep(0.45, 1.0, n.y);
+    vec3 prism = 0.5 + 0.5 * cos(6.2831 * (n.x * 1.4 + vec3(0.0, 0.33, 0.67)));
+    col = screenBlend(col, (prism * 0.6 + 0.4) * (s1 * 0.10 + s2 * 0.08));
+    col += (fbm(d * 0.010 + uTime * 0.02) - 0.5) * 0.012;
   } else if (uEnvKind == 1) {
-    col = mix(vec3(0.090, 0.095, 0.150), vec3(0.050, 0.052, 0.085), smoothstep(0.0, 1.0, n.y));
-    col += vec3(0.12, 0.14, 0.26) * 0.35 * exp(-dot(n - vec2(0.8, 0.1), n - vec2(0.8, 0.1)) * 5.0);
+    col = mix(vec3(0.085, 0.088, 0.115), vec3(0.045, 0.046, 0.062), smoothstep(0.0, 1.0, n.y));
+    col += vec3(0.14, 0.16, 0.24) * 0.28 * exp(-dot(n - vec2(0.8, 0.1), n - vec2(0.8, 0.1)) * 5.0);
     col += vec3(0.20, 0.10, 0.30) * 0.10 * exp(-dot(n - vec2(0.1, 0.95), n - vec2(0.1, 0.95)) * 4.0);
     col += (fbm(d * 0.012 + uTime * 0.02) - 0.5) * 0.02;
   } else if (uEnvKind == 2) {
@@ -203,7 +209,8 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
   vec4 e = uEdge[i];
   vec4 e2 = uEdge2[i];
   float edgeOn = e.y * uTune2.x;
-  if (sd > 14.0) return base;
+  float haloAmt = uMat2[i].w * uGlow[i].a;
+  if (sd > (haloAmt > 0.001 || edgeOn > 0.001 ? 70.0 : 16.0)) return base;
 
   float px = 1.0 / uScale;
   float inside = 1.0 - smoothstep(-0.7 * px, 0.7 * px, sd);
@@ -243,31 +250,54 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     float fres = pow(1.0 - n3.z, 1.6);
     refr = mix(refr, screenBlend(refr, refl * 0.55), clamp(fres * 1.2, 0.0, 0.75));
 
+    // Body: the slab absorbs and scatters toward its body colour, more where it is
+    // deepest – a calm, tinted centre framed by a bright, thin-walled rim.
     vec4 tint = uTint[i];
-    refr = mix(refr, tint.rgb, tint.a * (0.45 + 0.55 * om));
+    float absorb = tint.a * (0.30 + 0.70 * hgt);
+    refr = mix(refr, refr * (tint.rgb * 1.1), absorb * 0.8);
+    refr = mix(refr, tint.rgb, absorb * 0.6);
     refr *= uMat2[i].y;
     vec4 gl = uGlow[i];
-    refr = screenBlend(refr, gl.rgb * gl.a * (0.35 + 0.65 * hgt));
+    refr = screenBlend(refr, gl.rgb * gl.a * (0.30 + 0.70 * hgt));
 
     // lighting
     vec3 L = normalize(vec3(-0.5, 0.62, 0.62));
     vec2 Ld = normalize(L.xy);
     float facing = dot(outward, Ld);
+    float att = 1.0 + 0.35 * uAttention;
+    float specK = uMat[i].w * uTune.w * att;
     vec3 refv = reflect(vec3(0.0, 0.0, -1.0), n3);
-    float spec = pow(max(dot(refv, L), 0.0), 28.0) * uMat[i].w * uTune.w;
-    float rimLit = fres * (0.55 * max(facing, 0.0) + 0.22 * max(-facing, 0.0));
-    float rimShade = fres * (0.10 + 0.16 * max(-facing, 0.0));
-    float sheen = 0.07 * smoothstep(-0.1, 1.0, lp.y / h.y) * hgt * uMat[i].w;
+    float spec = pow(max(dot(refv, L), 0.0), 60.0) * specK;
+    float rimLit = fres * (0.50 * max(facing, 0.0) + 0.20 * max(-facing, 0.0));
+    float rimShade = fres * (0.08 + 0.12 * max(-facing, 0.0));
+
+    // milky rim: the thick wall scatters light; brighter toward the key light
+    float milk = uMat2[i].z;
+    float band = 1.0 - smoothstep(0.0, 0.46, t);
+    float lit = 0.28 + 0.72 * pow(facing * 0.5 + 0.5, 1.4);
+    refr = screenBlend(refr, vec3(1.0, 0.995, 1.0) * milk * band * band * lit * 0.6);
+    // a soft separation ring where the wall meets the body
+    float ring = exp(-pow((t - 0.64) / 0.12, 2.0));
+    refr *= 1.0 - ring * 0.05 * milk;
+
+    // narrow studio-light streak along the upper edge, attached to the geometry
+    float topness = smoothstep(0.05, 0.85, outward.y * 0.85 + facing * 0.35);
+    float streak = exp(-pow((t - 0.17) / 0.065, 2.0)) * topness;
+    // a soft secondary reflection on the lower wall
+    float lowGlint = exp(-pow((t - 0.22) / 0.12, 2.0)) * smoothstep(0.2, 0.9, -outward.y) * 0.35;
+    float sheen = 0.05 * smoothstep(-0.1, 1.0, lp.y / h.y) * hgt * uMat[i].w;
     // light focused through the slab pools on the rim opposite the light
-    vec3 caustic = (gl.rgb * gl.a * 2.2 + 0.10) * fres * max(-facing, 0.0) * 0.55;
-    // faint thin-film iridescence along the lit rim, keyed to perimeter position
+    vec3 caustic = (gl.rgb * gl.a * 2.2 + 0.08) * fres * max(-facing, 0.0) * 0.5;
+    // restrained spectral fringe confined to the rim wall (cyan / lilac / peach)
     float uu = perimU(lp, h, r);
-    vec3 film = 0.5 + 0.5 * cos(6.2831 * (uu * 1.5 + facing * 0.25 + vec3(0.0, 0.33, 0.67)));
-    vec3 rimCol = mix(vec3(1.0), film, 0.2);
-    refr = refr * (1.0 - rimShade) + vec3(spec * 0.9 + sheen) + rimCol * rimLit * 0.55 + caustic;
+    vec3 film = 0.5 + 0.5 * cos(6.2831 * (uu * 2.0 + facing * 0.3 + vec3(0.55, 0.78, 0.0)));
+    float fringe = exp(-pow((t - 0.08) / 0.07, 2.0)) * (0.5 + 0.5 * abs(outward.x)) * uMat[i].z * uTune.z;
+    vec3 rimCol = mix(vec3(1.0), film, 0.35);
+    refr = refr * (1.0 - rimShade) + vec3(spec * 0.9 + sheen) + vec3(streak * 0.62 + lowGlint) * specK
+         + rimCol * rimLit * 0.5 + caustic + (film - 0.45) * fringe * 0.28;
     // crisp manufactured hairline
     float line = exp(-pow(sd * uScale / 1.1, 2.0));
-    refr += vec3(line * (0.18 + 0.32 * max(facing, 0.0)));
+    refr += vec3(line * (0.22 + 0.36 * max(facing, 0.0)));
 
     // traveling edge light: inner band
     if (edgeOn > 0.001) {
@@ -277,21 +307,30 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
       float core = exp(-pow(dl / max(e.w, 1e-3), 2.0));
       float trailv = along < 0.0 ? exp(along / max(e2.w, 1e-3)) * 0.6 : 0.0;
       float k = max(core, trailv) * edgeOn;
-      float band = exp(-depth / (bevel * 0.32));
-      refr = screenBlend(refr, e2.rgb * k * band * 1.15);
+      float bandE = exp(-depth / (bevel * 0.22));
+      refr = screenBlend(refr, mix(e2.rgb, vec3(1.0), 0.35 * core) * k * bandE * 1.35);
     }
     col = mix(base, refr, inside);
   }
 
-  // outer halo of the edge light (soft bloom just outside the rim)
-  if (edgeOn > 0.001 && sd > 0.0) {
-    float u = perimU(lp, h, r);
-    float dl = fract(u - e.x + 0.5) - 0.5;
-    float along = dl * e.z;
-    float core = exp(-pow(dl / max(e.w * 1.4, 1e-3), 2.0));
-    float trailv = along < 0.0 ? exp(along / max(e2.w, 1e-3)) * 0.35 : 0.0;
-    float k = max(core, trailv) * edgeOn * exp(-sd / 4.5) * 0.5;
-    col = screenBlend(col, e2.rgb * k);
+  if (sd > 0.0) {
+    // luminous halo of lit glass (e.g. the sunlit thumb): soft colour spill outside
+    if (haloAmt > 0.001) {
+      vec4 gl = uGlow[i];
+      // coloured light, not white haze: tint toward the glow colour, then lift
+      float k = haloAmt * (exp(-sd / 7.0) * 0.55 + exp(-sd / 26.0) * 0.45);
+      col = mix(col, col * gl.rgb * 1.04 + gl.rgb * 0.12, clamp(k, 0.0, 1.0));
+    }
+    // bloom of the traveling edge light, following the same perimeter coordinate
+    if (edgeOn > 0.001) {
+      float u = perimU(lp, h, r);
+      float dl = fract(u - e.x + 0.5) - 0.5;
+      float along = dl * e.z;
+      float core = exp(-pow(dl / max(e.w * 1.5, 1e-3), 2.0));
+      float trailv = along < 0.0 ? exp(along / max(e2.w, 1e-3)) * 0.45 : 0.0;
+      float k = max(core, trailv) * edgeOn * (exp(-sd / 3.0) * 0.6 + exp(-sd / 12.0) * 0.35);
+      col = mix(col, col * e2.rgb + e2.rgb * 0.5, clamp(k, 0.0, 1.0));
+    }
   }
   return col;
 }
@@ -304,7 +343,7 @@ float shadowOf(int i, vec2 d) {
   lp.x -= g2.y * lp.y;
   float r = min(g2.x, min(g.z, g.w));
   float sd = sdRR(lp, g.zw * vec2(0.97, 0.95), r);
-  float broad = 1.0 - smoothstep(-soft, soft * 1.4, sd);
+  float broad = 1.0 - smoothstep(-soft * 1.2, soft * 2.0, sd);
   vec2 lp2 = vec2(d.x - g.x, -(d.y - g.y - 1.5));
   lp2.x -= g2.y * lp2.y;
   float tight = exp(-max(sdRR(lp2, g.zw, r), 0.0) / 2.2) * step(0.0, sdRR(lp2, g.zw, r) + 2.0);
@@ -329,7 +368,7 @@ void main() {
     if (i >= uShadowCount) break;
     sh = max(sh, shadowOf(i, d));
   }
-  col *= 1.0 - sh * vec3(0.30, 0.29, 0.26);
+  col *= 1.0 - sh * vec3(0.26, 0.26, 0.19); // cool lavender-grey shadow
   if (uHasContent == 1) {
     vec4 c = texture(uContent, fc / uRes);
     col = col * (1.0 - c.a) + c.rgb;

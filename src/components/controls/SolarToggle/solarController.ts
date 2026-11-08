@@ -1,13 +1,14 @@
 import type { SceneContext, StageController } from '../../../glass/GlassStage';
-import { perimeterLength } from '../../../glass/geometry';
+import { perimeterLength, perimeterParam } from '../../../glass/geometry';
 import { THUMB, TRACK, smoked, withGlow, withTint } from '../../../glass/materialPresets';
-import type { GlassScene } from '../../../glass/types';
+import type { GlassScene, RGB } from '../../../glass/types';
 import { Deformer } from '../../../motion/deformation';
 import { EdgeLight } from '../../../motion/edgeLight';
 import { reduced, Spring, SPRINGS } from '../../../motion/spring';
 import { iconPixels } from '../../../pixels/iconDefinitions';
 import { drawPixels, PixelMorpher } from '../../../pixels/PixelMorph';
-import { clamp, lerp, mixRGB, rubber, smoothstep } from '../shared/math';
+import { blendInk, darkWarmInk, DOT_GAP, lightInk } from '../shared/ink';
+import { clamp, lerp, mixRGB, rgba, rubber, smoothstep } from '../shared/math';
 import { LIGHT } from '../shared/palette';
 
 export const SOLAR = {
@@ -147,32 +148,81 @@ export class SolarController implements StageController {
     const glowColor = mixRGB(LIGHT.moon, LIGHT.sun, warm);
     const edgeColor = mixRGB(LIGHT.moonEdge, LIGHT.sunEdge, warm);
 
-    let track = withGlow(TRACK, glowColor, 0.05 + 0.03 * warm);
-    let thumb = withTint(THUMB, mixRGB([0.6, 0.6, 0.95], [1, 0.84, 0.6], warm), 0.08 + 0.04 * (1 - warm));
-    thumb = withGlow(thumb, glowColor, 0.16 + 0.06 * warm);
-    thumb = { ...thumb, exposure: lerp(0.96, 1.04, warm) };
+    // V2 pearl optics: neutral lavender capsule; the thumb is cool silver glass at
+    // night and creamy, sun-warmed glass by day, spilling a soft warm halo.
+    let track = withGlow(TRACK, glowColor, 0.04 + 0.04 * warm);
+    let thumb = withTint(THUMB, mixRGB([0.80, 0.81, 0.93], [1.0, 0.95, 0.88], warm), lerp(0.4, 0.52, warm));
+    thumb = withGlow(thumb, mixRGB(LIGHT.moonEdge, [1, 0.74, 0.4], warm), lerp(0.12, 0.34, warm));
+    thumb = { ...thumb, exposure: lerp(0.97, 1.03, warm), halo: lerp(0.25, 0.9, warm) };
     if (dark) {
       track = smoked(track);
-      thumb = smoked(thumb, 0.6);
+      thumb = smoked(thumb, 0.5);
     }
 
+    const speed = Math.abs(this.pos.v);
     const icon = ctx.paint('solar-icon', (g) => {
-      drawPixels(g, this.morph.states(), tx, SOLAR.cy, 7, ctx.pxPerUnit, {
-        glow: dark ? 5 : 0,
-        glowAlpha: 0.7,
+      // LED dots on the thumb surface: white moon on silver glass, dark warm sun on cream
+      drawPixels(g, this.morph.states(), tx, SOLAR.cy, 6.6, ctx.pxPerUnit, {
+        gap: DOT_GAP,
+        // ink follows the morph itself, so the moon never turns dark before it becomes the sun
+        ink: blendInk(lightInk, dark ? lightInk : darkWarmInk, smoothstep(0.55, 0.95, this.morph.progress)),
+        glow: (1 - warm) * 4 + (dark ? 3 : 0),
+        glowAlpha: 0.55,
         scaleX: d.along,
         scaleY: d.across,
       });
     });
 
     const under = ctx.paint('solar-under', (g) => {
-      // faint end-stop glyphs resting on the studio surface inside the track;
-      // each fades as the thumb covers it so the tile never shows a ghost
-      const fade = (x: number) => smoothstep(SOLAR.thumb * 0.6, SOLAR.thumb * 1.6, Math.abs(tx - x));
-      const a = dark ? 0.5 : 0.34;
-      drawPixels(g, iconPixels('moon').map((px) => ({ ...px, alpha: a * fade(X0), size: 1 })), X0, SOLAR.cy, 3, ctx.pxPerUnit);
-      drawPixels(g, iconPixels('sun').map((px) => ({ ...px, alpha: a * fade(X1), size: 1 })), X1, SOLAR.cy, 3, ctx.pxPerUnit);
+      // state light pooled under the capsule: cool lavender-blue on the moon side,
+      // warm peach near the sun – the reference's graded track interior
+      const pool = (x: number, c: RGB, a: number, r: number) => {
+        const grad = g.createRadialGradient(x, SOLAR.cy, 4, x, SOLAR.cy, r);
+        grad.addColorStop(0, rgba(c, a));
+        grad.addColorStop(1, rgba(c, 0));
+        g.fillStyle = grad;
+        g.fillRect(x - r, SOLAR.cy - r, r * 2, r * 2);
+      };
+      // clipped to the capsule so the colour lives inside the glass, not around it
+      g.save();
+      g.beginPath();
+      g.roundRect(SOLAR.cx - SOLAR.trackHW + 4, SOLAR.cy - SOLAR.trackHH + 4, SOLAR.trackHW * 2 - 8, SOLAR.trackHH * 2 - 8, SOLAR.trackHH);
+      g.clip();
+      pool(X0 - 20, [0.55, 0.62, 1.0], (dark ? 0.35 : 0.45) * (1 - warm * 0.6), 220);
+      pool(X1 + 20, [1.0, 0.72, 0.42], (dark ? 0.3 : 0.55) * warm, 220);
+      g.restore();
     });
+
+    const echoes = ctx.paint('solar-echo', (g) => {
+      // faint end-stop glyphs inside the capsule, fading as the thumb covers them
+      const fade = (x: number) => smoothstep(SOLAR.thumb * 0.6, SOLAR.thumb * 1.6, Math.abs(tx - x));
+      const a = 0.55;
+      drawPixels(g, iconPixels('moon').map((px) => ({ ...px, alpha: a * fade(X0), size: 1 })), X0, SOLAR.cy, 3, ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk });
+      drawPixels(g, iconPixels('sun').map((px) => ({ ...px, alpha: a * fade(X1), size: 1 })), X1, SOLAR.cy, 3, ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk });
+      // motion echoes: the icon leaves a short dotted wake while the thumb travels
+      if (!this.reducedMotion && speed > 0.4) {
+        const dir = Math.sign(this.pos.v);
+        for (let k = 1; k <= 3; k++) {
+          const ex = tx - dir * k * 34;
+          const a2 = Math.min(1, (speed - 0.4) / 3) * (0.42 - k * 0.11);
+          if (a2 <= 0) continue;
+          drawPixels(g, this.morph.states().map((px) => ({ ...px, alpha: px.alpha * a2 })), ex, SOLAR.cy, 6.6 * (1 - k * 0.14), ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk });
+        }
+      }
+    });
+
+    // the warm arc also catches the capsule rim just above the thumb
+    const trackRect = { hw: SOLAR.trackHW, hh: SOLAR.trackHH, radius: SOLAR.trackHH };
+    // by day a thin amber arc rests on the upper rim (quiet), brightening with motion
+    const thumbEdge = this.edge.params(edgeColor, (dark ? 0.15 : 0.3) * warm);
+    const trackEdge = {
+      ...thumbEdge,
+      head: perimeterParam(tx - SOLAR.cx + 30, SOLAR.trackHH, trackRect),
+      intensity: thumbEdge.intensity * 0.6 + (dark ? 0.2 : 0.5) * warm,
+      width: 0.03,
+      trail: 0.07,
+      direction: 1,
+    };
 
     return {
       env: {
@@ -180,15 +230,15 @@ export class SolarController implements StageController {
         glowColor,
         glowPos: [tx, SOLAR.cy + 10],
         glowRadius: 300,
-        glowStrength: dark ? 0.28 : 0.3,
-        brightness: dark ? 1 : lerp(0.985, 1.01, warm),
+        glowStrength: dark ? 0.2 : 0.12,
+        brightness: 1,
         time: ctx.time,
       },
       under,
       layers: [
         {
-          shapes: [{ cx: SOLAR.cx, cy: SOLAR.cy, hw: SOLAR.trackHW, hh: SOLAR.trackHH, radius: SOLAR.trackHH, skew: 0, material: track }],
-          above: icon,
+          shapes: [{ cx: SOLAR.cx, cy: SOLAR.cy, hw: SOLAR.trackHW, hh: SOLAR.trackHH, radius: SOLAR.trackHH, skew: 0, material: track, edge: trackEdge }],
+          above: echoes,
         },
         {
           shapes: [
@@ -200,9 +250,10 @@ export class SolarController implements StageController {
               radius: 44,
               skew: d.lean,
               material: thumb,
-              edge: this.edge.params(edgeColor),
+              edge: thumbEdge,
             },
           ],
+          above: icon,
         },
       ],
     };

@@ -8,13 +8,13 @@ export default defineConfig({
   workers: 3,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:4372',
+    baseURL: 'http://localhost:4373',
     trace: 'retain-on-failure',
     launchOptions: { args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] },
   },
   webServer: {
     command: 'npm run build && npm run preview',
-    url: 'http://localhost:4372',
+    url: 'http://localhost:4373',
     reuseExistingServer: true,
     timeout: 180_000,
   },

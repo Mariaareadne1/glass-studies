@@ -1,8 +1,8 @@
 // Performance probe: all six studies on screen, continuous interaction, frame-time stats.
-// node scripts/perf.mjs [--base=http://localhost:4372]
+// node scripts/perf.mjs [--base=http://localhost:4373]
 import { chromium } from '@playwright/test';
 
-const base = process.argv.find((a) => a.startsWith('--base='))?.slice(7) ?? 'http://localhost:4372';
+const base = process.argv.find((a) => a.startsWith('--base='))?.slice(7) ?? 'http://localhost:4373';
 const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 2300 }, deviceScaleFactor: 2 });
 await page.goto(base + '/');

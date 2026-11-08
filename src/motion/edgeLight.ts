@@ -14,8 +14,11 @@ export class EdgeLight {
   private boost = 0;
 
   private gain: number;
+  /** Where the light comes to rest on the perimeter once motion stops. */
+  restHead: number;
   constructor(head = 0.12, gain = 2.2) {
     this.head = head;
+    this.restHead = head;
     this.gain = gain;
   }
 
@@ -35,6 +38,13 @@ export class EdgeLight {
     // distance travelled, amplified, wrapped onto the perimeter
     this.head += ((velocity * this.gain) / Math.max(perimeter, 1)) * dt;
     this.head -= Math.floor(this.head);
+    // after the sweep, the light glides home along the rim (shortest way round)
+    if (moving < 4 && this.boost <= 0) {
+      let d = this.restHead - this.head;
+      d -= Math.round(d);
+      this.head += d * Math.min(1, dt * 2.2);
+      this.head -= Math.floor(this.head);
+    }
     const target = Math.min(1, moving / 900 + this.boost);
     this.intensity.set(target);
     this.intensity.config = target > this.intensity.x ? SPRINGS.deform : SPRINGS.ambient;

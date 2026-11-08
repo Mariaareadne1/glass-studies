@@ -18,6 +18,8 @@ export interface SceneContext {
   env: EnvironmentKind;
   dark: boolean;
   time: number;
+  /** 0..1 smoothed hover/focus engagement. */
+  attention: number;
   /** Clear and repaint a named 2D content layer in design units. */
   paint(name: string, draw: (g: CanvasRenderingContext2D) => void): ContentLayer;
 }
@@ -66,6 +68,12 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
   const [backend, setBackend] = useState<RendererBackend>(() => detectBackend());
   const [failed, setFailed] = useState(false);
   const invalidateRef = useRef<(() => void) | null>(null);
+  const engagedRef = useRef(false);
+  const engage = (on: boolean) => {
+    engagedRef.current = on;
+    controller.setAttention?.(on);
+    invalidateRef.current?.();
+  };
   const live = useRef({ env, controller });
   useLayoutEffect(() => {
     live.current = { env, controller };
@@ -106,6 +114,7 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
     let sizedFor = '';
     let time = 0;
     let dirty = true;
+    let attention = 0;
 
     const ensureSize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
@@ -144,7 +153,10 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
       // procedural backdrop never pops after an idle period
       time += dt;
       const kind0 = live.current.env;
-      const moving = live.current.controller.step(dt, now) || kind0 === 'optics';
+      const attTarget = engagedRef.current ? 1 : 0;
+      attention += (attTarget - attention) * Math.min(1, dt * 6);
+      const attMoving = Math.abs(attTarget - attention) > 0.004;
+      const moving = live.current.controller.step(dt, now) || kind0 === 'optics' || attMoving;
       if (!visible) return false;
       if (moving || dirty) {
         ensureSize();
@@ -157,9 +169,10 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
           env: kind,
           dark: kind === 'midnight',
           time,
+          attention,
           paint,
         });
-        renderer.render(scene);
+        renderer.render({ ...scene, attention });
         dirty = false;
       }
       if (renderer instanceof WebGLGlassRenderer && renderer.isLost) {
@@ -215,16 +228,10 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
       className={`glass-stage ${className ?? ''}`}
       style={style}
       data-env={env}
-      onPointerEnter={() => {
-        controller.setAttention?.(true);
-        invalidateRef.current?.();
-      }}
-      onPointerLeave={() => controller.setAttention?.(false)}
-      onFocus={() => {
-        controller.setAttention?.(true);
-        invalidateRef.current?.();
-      }}
-      onBlur={() => controller.setAttention?.(false)}
+      onPointerEnter={() => engage(true)}
+      onPointerLeave={() => engage(false)}
+      onFocus={() => engage(true)}
+      onBlur={() => engage(false)}
     >
       <canvas key={backend} ref={canvasRef} className="glass-stage__canvas" aria-hidden="true" />
       <div

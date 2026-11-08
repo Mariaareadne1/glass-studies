@@ -47,6 +47,10 @@ export interface MaterialParams {
   shadow: number;
   /** Exposure of the body: <1 smoked, >1 bright. */
   exposure: number;
+  /** Milky scattering in the rim wall 0..1 (V2 "thick edge"). */
+  milk: number;
+  /** Outer luminous halo strength, coloured by `glow` (0 = none). */
+  halo: number;
 }
 
 export interface EdgeLightParams {
@@ -93,6 +97,8 @@ export interface GlassScene {
   /** Content painted on the studio surface, below every glass layer. */
   under?: ContentLayer;
   layers: GlassLayer[];
+  /** 0..1 hover/focus engagement – lifts specular response. */
+  attention?: number;
 }
 
 export interface GlassRenderer {

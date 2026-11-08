@@ -79,6 +79,12 @@ export interface DrawPixelOptions {
   rotate?: number;
   scaleX?: number;
   scaleY?: number;
+  /** Fraction of each cell left empty between dots (LED dot-matrix look). */
+  gap?: number;
+  /** Maps each square's colour (e.g. to light LED ink). */
+  ink?: (c: readonly [number, number, number]) => readonly [number, number, number];
+  /** Colour of the glow halo (defaults to white). */
+  glowColor?: string;
 }
 
 const scratch = typeof document !== 'undefined' ? document.createElement('canvas') : null;
@@ -124,10 +130,10 @@ export function drawPixels(
     const ry = (s.y + 0.5 - 6) * sy;
     const x = rx * cos - ry * sin;
     const y = rx * sin + ry * cos;
-    const w = cell * s.size;
+    const w = cell * s.size * (1 - (opts.gap ?? 0));
     const px = pad + 6 * cell + x * cell - w / 2;
     const py = pad + 6 * cell + y * cell - w / 2;
-    const c = s.color;
+    const c = opts.ink ? opts.ink(s.color) : s.color;
     sc.fillStyle = `rgba(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0},${s.alpha})`;
     if (s.size > 0.98) {
       // snap both edges to device pixels so squares tile without seams
@@ -147,7 +153,6 @@ export function drawPixels(
   if (opts.glow && opts.glow > 0) {
     ctx.save();
     ctx.globalAlpha = (opts.alpha ?? 1) * (opts.glowAlpha ?? 0.6);
-    ctx.shadowColor = 'rgba(255,255,255,0.9)';
     ctx.filter = `blur(${opts.glow}px)`;
     ctx.drawImage(scratch, 0, 0, pxSize, pxSize, x0, y0, size, size);
     ctx.restore();

@@ -274,3 +274,25 @@ export function haloSun(level: number): Pixel[] {
   for (let i = 0; i < count; i++) rays.push(...segs[i]);
   return [...core, ...rays];
 }
+
+/**
+ * V2 LED variant: cloud bodies become outlines (the reference draws clouds as
+ * dotted contours), everything else keeps its silhouette.
+ */
+const CLOUD_BODY = hex(CLOUD_PAL.c);
+const ledCache = new Map<string, Pixel[]>();
+const same = (a: RGB, b: RGB) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) < 0.01;
+
+export function ledPixels(name: IconName): Pixel[] {
+  const hit = ledCache.get(name);
+  if (hit) return hit;
+  const px = iconPixels(name);
+  const filled = new Set(px.map((p) => `${p.x},${p.y}`));
+  const out = px.filter((p) => {
+    if (!same(p.color, CLOUD_BODY)) return true;
+    const n = [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dy]) => filled.has(`${p.x + dx},${p.y + dy}`));
+    return !n;
+  });
+  ledCache.set(name, out);
+  return out;
+}

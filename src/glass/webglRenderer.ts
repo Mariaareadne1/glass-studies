@@ -176,7 +176,7 @@ export class WebGLGlassRenderer implements GlassRenderer {
       mat.set([m.refraction, m.frost, m.aberration, m.specular], o);
       tint.set(m.tint, o);
       glow.set(m.glow, o);
-      mat2.set([m.shadow, m.exposure, 0, 0], o);
+      mat2.set([m.shadow, m.exposure, m.milk, m.halo], o);
       if (s.edge) {
         edge.set([s.edge.head, s.edge.intensity, s.edge.direction, s.edge.width], o);
         edge2.set([s.edge.color[0], s.edge.color[1], s.edge.color[2], s.edge.trail], o);
@@ -229,6 +229,7 @@ export class WebGLGlassRenderer implements GlassRenderer {
     gl.uniform1f(this.u('uTime'), env.time);
     gl.uniform4f(this.u('uTune'), tuning.refraction, tuning.frost, tuning.aberration, tuning.specular);
     gl.uniform4f(this.u('uTune2'), tuning.edgeLight, tuning.shadowSoftness, tuning.bevel, tuning.thickness);
+    gl.uniform1f(this.u('uAttention'), scene.attention ?? 0);
     gl.uniform1i(this.u('uPrev'), 0);
     gl.uniform1i(this.u('uContent'), 1);
 

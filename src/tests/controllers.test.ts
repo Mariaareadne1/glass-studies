@@ -22,6 +22,7 @@ const ctx = (env: SceneContext['env'] = 'pearl'): SceneContext => ({
   env,
   dark: env === 'midnight',
   time: 0,
+  attention: 0,
   paint: (_n, draw) => {
     draw(stub2d);
     return { canvas: {} as HTMLCanvasElement, version: 1 };
