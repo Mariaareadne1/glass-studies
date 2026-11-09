@@ -1368,3 +1368,20 @@ button {
   width: 100%;
   accent-color: var(--ink-2);
 }
+
+/* the focused view never grows wider than the screen: one shrinkable column, a wrapping bar */
+.focus {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 640px) {
+  .focus__bar {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+  .focus__bar .chip-row {
+    overflow-x: auto;
+    max-width: 100%;
+    scrollbar-width: none;
+  }
+}

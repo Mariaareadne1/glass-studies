@@ -1,5 +1,22 @@
 # Progress
 
+## V3 Instruments & Loaders (branch v3/glass-instruments)
+Built on v3/new-studies (d62bc60). Baseline for pixel regression: worktree ../glass-studies-v3base at d62bc60 served on :5375.
+
+- **Stage 0 + shared (ae37197):** fused (smooth-union) glass layers with one shared highlight frame; loader transport (pause / restart / 0.5–1.5× / determinate mode fed by a supplied fraction); card pause toggle; registry groups (Weather Instruments, Controls, Loaders, Optics & Materials); `scripts/regress.mjs`. Originals verified pixel-identical apart from DOM text anti-aliasing.
+- **Stage 1 (f799842):** Pixel Assembly, Liquid Tabs, Droplet Press (monotonic hold clock, quiet-mode action, cancellation), Lens Scan, Merge. GPU contexts only for stages near the viewport, released under the focused view.
+- **Stage 2 + 3 (76868dd):** Iris (f/1.8–16, 1/N radius, click a stop, RotaryTracker), Drift (wind [−1,1]², hold / spring-back), Beads (15-minute model, window drag, tap), Glass Scrubber (real decoded frames, seek queue, local files); Tide Fill (volume-true, damped surface), Caustic (photon map), Magnetic Beads (fixed-step physics), Glass Stitch (per-corner radii, bonding core). Shader: per-corner radii, 6 shapes per layer.
+- **Stage 4 (b2c2365):** Aperture Capture (camera on request, local pipeline with measured progress, PNG download, upload fallback) and Audio Render (OfflineAudioContext with suspend() progress, −1 dBFS, WAV export, real waveform).
+- **Stage 5 (this commit):** lint back to the 5 pre-existing warnings, focused view no longer overflows on phones (pre-existing grid min-content bug), compact Scrubber card, refreshed copy, Caustic photon map 20× cheaper (same result), `scripts/perf-focus.mjs`, docs (README, CASE_STUDY §10, DESIGN_SYSTEM, QA), media in docs/media/v3.1.
+
+### Test status
+- typecheck ✅ · lint 0 errors, 5 pre-existing warnings · unit 136/136 ✅
+- E2E: 49/49 passed (one worker, Chromium + mobile + WebKit + Firefox smoke, 2.1 min). Perf: 60 fps everywhere measured, Caustic after the footprint-only photon map. Parallel runs on this Mac stall when the machine idles/sleeps (wall time 17 min for 7 tests that each take 2–9 s; a browser launch timed out after 180 s); not reproducible serially or under load. Recorded as an environment limitation, not hidden.
+
+### Resume here
+- Optional: merge v3/glass-instruments into main (not done; needs the owner's go-ahead).
+- Optional: deploy (repo is private; not configured).
+
 ## V3 new instruments and Glass Loaders (branch v3/new-studies)
 - **M1 (f30d3dd):** Iris, Droplet, Drift, Beads with unit and E2E interaction tests.
 - **M2 (b994767):** Glass Loaders section (Pixel Morph, Tide Fill, Orbit, Crystallize), shared LoopController, off-screen rest, reduced-motion variants.

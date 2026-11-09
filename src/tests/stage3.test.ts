@@ -74,6 +74,38 @@ describe('Caustic', () => {
     expect(tonemap(4, 1)).toBeGreaterThan(tonemap(2, 1));
   });
 
+  test('the fast field equals a brute-force trace of every photon (interior cells)', () => {
+    const g = lensFor('capsule');
+    const light = { x: 150, y: 120, z: 560 };
+    const fast = causticField(g, light, GRID, 2);
+    // reference: trace every lattice photon, splat bilinearly
+    const { cols, rows, w, h } = GRID;
+    const ref = new Float32Array(cols * rows);
+    const shrink = (light.z - 70) / light.z;
+    const ex0 = light.x + (0 - light.x) * shrink;
+    const ey0 = light.y + (0 - light.y) * shrink;
+    const nx = cols * 2;
+    const ny = rows * 2;
+    for (let j = 0; j < ny; j++)
+      for (let i = 0; i < nx; i++) {
+        const hit = tracePhoton(g, light, ex0 + ((i + 0.5) / nx) * w * shrink, ey0 + ((j + 0.5) / ny) * h * shrink);
+        if (!hit) continue;
+        const fx = (hit.x / w) * cols - 0.5;
+        const fy = (hit.y / h) * rows - 0.5;
+        const ix = Math.floor(fx);
+        const iy = Math.floor(fy);
+        for (let k = 0; k < 4; k++) {
+          const cx = ix + (k & 1);
+          const cy = iy + (k >> 1);
+          if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) continue;
+          ref[cy * cols + cx] += ((k & 1 ? fx - ix : 1 - (fx - ix)) * (k >> 1 ? fy - iy : 1 - (fy - iy))) / 4;
+        }
+      }
+    let worst = 0;
+    for (let y = 2; y < rows - 2; y++) for (let x = 2; x < cols - 2; x++) worst = Math.max(worst, Math.abs(fast[y * cols + x] - ref[y * cols + x]));
+    expect(worst).toBeLessThan(1e-4);
+  });
+
   test('the light handle can never sit on the glass, and scenes are valid', () => {
     for (const shape of ['sphere', 'capsule'] as const) {
       const g = lensFor(shape);

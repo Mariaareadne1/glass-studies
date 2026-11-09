@@ -8,7 +8,7 @@ export const OPTICS: StudyDef[] = [
   {
     id: 'lens-scan',
     group: 'optics',
-    num: 'O1',
+    num: 'M1',
     title: 'Lens Scan',
     description: 'A thick glass lens travels over microtype, fine lines, a checkerboard or a small image, bending and magnifying only what it covers.',
     hint: 'Press the sheet to place the lens · loops when indeterminate',
@@ -21,7 +21,7 @@ export const OPTICS: StudyDef[] = [
   {
     id: 'caustic',
     group: 'optics',
-    num: 'O2',
+    num: 'M2',
     title: 'Caustic',
     description: 'A point light circles a clear glass lens; the lens gathers and splits the light into a moving caustic on the plane below.',
     hint: 'Drag the light · arrow keys when focused · sphere or capsule',
@@ -34,7 +34,7 @@ export const OPTICS: StudyDef[] = [
   {
     id: 'stitch',
     group: 'optics',
-    num: 'O3',
+    num: 'M3',
     title: 'Glass Stitch',
     description: 'Four glass fragments float apart, align and meet along complementary edges; bridges form at contact until they are one continuous panel.',
     hint: 'Loops every 6.4 s · determinate mode in focus',

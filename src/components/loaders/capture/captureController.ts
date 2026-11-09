@@ -62,6 +62,16 @@ export class CaptureController implements StageController {
     this.setPhase('closing');
   }
 
+  setVideo(v: HTMLVideoElement | null): void {
+    this.video = v;
+    this.invalidate();
+  }
+
+  setResult(c: HTMLCanvasElement | null): void {
+    this.result = c;
+    this.invalidate();
+  }
+
   setProgress(p: number): void {
     this.progress = Math.min(1, Math.max(0, p));
     this.invalidate();

@@ -123,3 +123,30 @@ All new pieces reuse `materialPresets` (`CARD`, `THUMB`, `TRACK`, `BEAD`, `smoke
 | Loaders | tile r 44 (Morph, Crystallize), vessel r 40 (Tide), lens r 74 + bead r 21 (Orbit) | `LoopController` phases; Orbit adds one sine per lap | dots / hourglass / diamond / drop, snow crystal |
 
 Geometry follows the V2.1 rounded-square family (concentric radii; circles only where the object is round).
+
+## V3 Instruments & Loaders (branch v3/glass-instruments)
+
+Superseding rows above where they differ (Drift no longer throws; Beads fuse instead of a separate bridge slab).
+
+**New renderer vocabulary**
+- `GlassLayer.union` (fillet width, design units): the layer's shapes become one surface. Used by Liquid Tabs (14), Merge (30), Beads (16), Glass Stitch (12).
+- `GlassShape.radii` `[tr, br, bl, tl]`: per-corner radii (Glass Stitch fragments: outer 46, seams 9).
+- Up to 6 shapes per layer (`MAX_SHAPES_PER_LAYER`).
+
+| Piece | Glass | Motion / model |
+| --- | --- | --- |
+| Liquid Tabs | tray (TRACK, bevel 14, milk 0.4); membrane = 2 lobes + area-preserving neck (THUMB, bevel 14, milk 0.42) fused | head spring k 260 / c 24, tail k 70 / c 15; lobes contract up to 32% while stretched |
+| Drift | pad (TRACK), orb (THUMB, bevel 30, thickness 42, frost 0.03) | value exact; follower spring k 260 / c 20 for stretch; spring-back k 140 / c 16 |
+| Beads | beads r 21 + neck, fused | 15-minute model; window drag preserves duration |
+| Glass Scrubber | thin bezel (refraction 0.6) over the frame, tray, lens 30 × 34 (BEAD, aberration 0.18) | lens on `track` spring, snapped while scrubbing |
+| Merge | 3 beads (BEAD, bevel 30, milk 0.22), fused | radii r·√(1 + gathered mass) |
+| Tide Fill | vessel (CARD, bevel 40, aberration 0.35) | level spring k 40 / c 12; 24-column surface |
+| Pixel Assembly | tile r 44, cream glow | seeded scatter → icon; families Drift / Bloom / Sweep |
+| Magnetic Beads | track r 60 (TRACK), beads r 21 (BEAD) | 1/240 s steps, force ∝ 1/(d + 38), caps 5200 / 900 |
+| Aperture Capture | housing r 156 (CARD), clear lens r 120 | iris spring k 220 / c 24; housing edge light = measured progress |
+| Audio Render | bar 528 × 140 r 30 (CARD, darkened on light studios) | pixel columns from peak / RMS; rim light = measured progress |
+| Lens Scan | lens 124 × 124 r 30 (BEAD, bevel 58, thickness 54, aberration 0.14) | ping-pong raised cosine, 4.2 s |
+| Caustic | lens sphere r 66 / capsule (BEAD, milk 0.08, shadow 0: the photon map is the shadow) | light z 560, IOR 1.52, lens 70 above the plane |
+| Glass Stitch | 4 quadrant fragments + bonding core (THUMB, bevel 34) | ordered joins over the stage fraction |
+
+Colour stays restrained: pale blue and warm ivory for wind and water, cream for pixels and light, lavender-grey for shadows; state colours only where they carry meaning (the result check, the selected window).

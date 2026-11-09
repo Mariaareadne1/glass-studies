@@ -41,7 +41,7 @@ export function ApertureCapture({ env }: { env: EnvironmentKind }) {
 
   useEffect(() => ctrl.setReducedMotion(reducedMotion), [ctrl, reducedMotion]);
   useEffect(() => {
-    ctrl.video = videoRef.current;
+    ctrl.setVideo(videoRef.current);
   }, [ctrl]);
 
   const stopCamera = useCallback(() => {
@@ -127,7 +127,7 @@ export function ApertureCapture({ env }: { env: EnvironmentKind }) {
     const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
     if (!blob) throw new Error('Could not encode the image');
     if (abort.signal.aborted) return;
-    ctrl.result = canvas;
+    ctrl.setResult(canvas);
     setOutput({ url: URL.createObjectURL(blob), w, h, source });
     setPhase('result');
     setMessage(`${w} × ${h} · ${FILTERS.find((f) => f.id === filter)?.label} · processed on this device`);
@@ -144,7 +144,7 @@ export function ApertureCapture({ env }: { env: EnvironmentKind }) {
     frame.height = h0;
     // un-mirror nothing: the capture is the camera's real frame, shown as taken
     frame.getContext('2d')?.drawImage(v, 0, 0, w0, h0);
-    ctrl.result = frame;
+    ctrl.setResult(frame);
     stopCamera();
     ctrl.closeThen(() => {
       runPipeline((g, w, h) => g.drawImage(frame, 0, 0, w, h), w0, h0, 'camera').catch((err: unknown) => {
@@ -189,7 +189,7 @@ export function ApertureCapture({ env }: { env: EnvironmentKind }) {
 
   const retake = () => {
     abortRef.current?.abort();
-    ctrl.result = null;
+    ctrl.setResult(null);
     setOutput(null);
     setProgress(0);
     if (output?.source === 'camera') startCamera();

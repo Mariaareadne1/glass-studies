@@ -41,6 +41,12 @@ export class ScrubberController implements StageController {
     this.lens.config = r ? reduced(SPRINGS.track) : SPRINGS.track;
   }
 
+  /** Merge media fields (status, strip, preview…) and redraw. */
+  updateMedia(patch: Partial<ScrubberMedia>): void {
+    this.media = { ...this.media, ...patch };
+    this.refresh();
+  }
+
   /** Something in the media changed (new frame, thumbnails, status). */
   refresh(): void {
     this.dirty = true;

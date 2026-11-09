@@ -108,8 +108,27 @@ export function tracePhoton(g: LensGeometry, light: LightSource, x: number, y: n
  */
 export function causticField(g: LensGeometry, light: LightSource, grid: CausticGrid, density = 3): Float32Array {
   const { cols, rows, x0, y0, w, h } = grid;
-  const acc = new Float32Array(cols * rows);
-  // emit in the lens plane over the area that projects onto the map
+  const uniform = density * density;
+  // Photons that miss the lens land exactly on a uniform lattice (one per sub-cell), so the
+  // field starts at 1 everywhere and only photons crossing the lens are traced: each one is
+  // removed from where it would have landed and added where it actually lands. This is the
+  // same result as tracing every photon, at a small fraction of the cost.
+  const acc = new Float32Array(cols * rows).fill(uniform);
+  const splat = (px: number, py: number, wgt: number) => {
+    const fx = ((px - x0) / w) * cols - 0.5;
+    const fy = ((py - y0) / h) * rows - 0.5;
+    const ix = Math.floor(fx);
+    const iy = Math.floor(fy);
+    const tx = fx - ix;
+    const ty = fy - iy;
+    for (let k = 0; k < 4; k++) {
+      const cx = ix + (k & 1);
+      const cy = iy + (k >> 1);
+      if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) continue;
+      acc[cy * cols + cx] += wgt * (k & 1 ? tx : 1 - tx) * (k >> 1 ? ty : 1 - ty);
+    }
+  };
+  // emission lattice in the lens plane, covering the projection of the map area
   const shrink = (light.z - LENS_HEIGHT) / light.z; // plane → lens-plane scale about the light
   const ex0 = light.x + (x0 - light.x) * shrink;
   const ey0 = light.y + (y0 - light.y) * shrink;
@@ -117,27 +136,23 @@ export function causticField(g: LensGeometry, light: LightSource, grid: CausticG
   const eh = h * shrink;
   const nx = cols * density;
   const ny = rows * density;
-  for (let j = 0; j < ny; j++) {
-    for (let i = 0; i < nx; i++) {
+  // only lattice points inside the lens footprint's bounding box can be refracted
+  const i0 = Math.max(0, Math.floor(((g.cx - g.hw - ex0) / ew) * nx));
+  const i1 = Math.min(nx - 1, Math.ceil(((g.cx + g.hw - ex0) / ew) * nx));
+  const j0 = Math.max(0, Math.floor(((g.cy - g.hh - ey0) / eh) * ny));
+  const j1 = Math.min(ny - 1, Math.ceil(((g.cy + g.hh - ey0) / eh) * ny));
+  const s = light.z / (light.z - LENS_HEIGHT);
+  for (let j = j0; j <= j1; j++) {
+    for (let i = i0; i <= i1; i++) {
       const px = ex0 + ((i + 0.5) / nx) * ew;
       const py = ey0 + ((j + 0.5) / ny) * eh;
+      if (sdRoundRect(px - g.cx, py - g.cy, g) >= 0) continue;
+      // where the photon would have landed without the lens
+      splat(light.x + (px - light.x) * s, light.y + (py - light.y) * s, -1);
       const hit = tracePhoton(g, light, px, py);
-      if (!hit) continue;
-      const fx = ((hit.x - x0) / w) * cols - 0.5;
-      const fy = ((hit.y - y0) / h) * rows - 0.5;
-      const ix = Math.floor(fx);
-      const iy = Math.floor(fy);
-      const tx = fx - ix;
-      const ty = fy - iy;
-      for (let k = 0; k < 4; k++) {
-        const cx = ix + (k & 1);
-        const cy = iy + (k >> 1);
-        if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) continue;
-        acc[cy * cols + cx] += (k & 1 ? tx : 1 - tx) * (k >> 1 ? ty : 1 - ty);
-      }
+      if (hit) splat(hit.x, hit.y, 1);
     }
   }
-  const uniform = density * density;
   for (let k = 0; k < acc.length; k++) acc[k] /= uniform;
   return acc;
 }

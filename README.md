@@ -6,7 +6,7 @@
 >
 > **V2.1 material polish** (now on `main`): lighter, clearer pearl glass on light studios with dark pearl-grey ink, rounded-square trays for Atmosphere and Thermal, and Halo's orbit ring removed. Before/after pairs are in [docs/media/v2.1](docs/media/v2.1).
 >
-> **V3, four new instruments and Glass Loaders** (branch `v3/new-studies`): Iris, Droplet, Drift and Beads join the collection, plus a separate section of four looping loaders, all built from the same glass, motion and pixel systems. See [The new instruments](#the-new-instruments-v3) and [Glass Loaders](#glass-loaders).
+> **V3, Instruments & Loaders** (branch `v3/glass-instruments`, built on `v3/new-studies`): fifteen new studies in three collections (**Controls**, **Loaders**, **Optics & Materials**) next to the original six. Several do real work: a video scrubber over real decoded frames, a camera capture with a local image pipeline, an in-browser audio render with WAV export. See [V3 collections](#v3-collections).
 >
 > | V1 | V2 |
 > | --- | --- |
@@ -17,7 +17,7 @@
 > git worktree add ../glass-studies-v1 v1-original && cd ../glass-studies-v1 && npm install && npx vite --port 5372
 > ```
 
-Glass Studies is an interactive exhibition of ten small liquid-glass instruments: a day/night toggle, a weather selector, a brightness dial, a temperature slider, a mode selector, a compound weather card, an aperture dial, a press-and-hold drop, a two-axis mood pad and a dual range, plus four looping glass loaders. Every control is live. The glass refracts what lies beneath it on the GPU, thumbs stretch and settle on real springs, a luminous highlight races around rims as they move, and the pixel-art icons rebuild themselves square by square.
+Glass Studies is an interactive exhibition of liquid-glass studies in four collections: the original six **Weather Instruments**, six **Controls**, eight **Loaders** and three **Optics & Materials** studies. Every control is live. The glass refracts what lies beneath it on the GPU, thumbs stretch and settle on real springs, a luminous highlight races around rims as they move, and the pixel-art icons rebuild themselves square by square.
 
 ![The collection](docs/media/v2.1/gallery.jpg)
 
@@ -41,7 +41,7 @@ Useful URL flags:
 
 | Flag | Effect |
 | --- | --- |
-| `#/study/<id>` | Open a study in the focused view (`solar`, `atmosphere`, `halo`, `thermal`, `modes`, `forecast`, `iris`, `droplet`, `drift`, `beads`, `loader-morph`, `loader-tide`, `loader-orbit`, `loader-crystal`) |
+| `#/study/<id>` | Open a study in the focused view: `solar` `atmosphere` `halo` `thermal` `modes` `forecast` · `iris` `droplet` `drift` `tabs` `beads` `scrubber` · `loader-merge` `loader-tide` `loader-morph` `loader-magnet` `capture` `audio` `loader-orbit` `loader-crystal` · `lens-scan` `caustic` `stitch` |
 | `?env=optics` | Start the focused view on a backdrop (`pearl`, `midnight`, `atmosphere`, `optics`) |
 | `?fallback` | Force the Canvas2D frosted fallback (no refraction) |
 | `?inspect` | Show the material inspector in production builds (it is always on in dev) |
@@ -58,36 +58,48 @@ Useful URL flags:
 | 05 | **Modes** (4-way radiogroup) | as Atmosphere | Heavier, leaning tile. A leaf bends, a bolt charges, stars twinkle, a bud opens (two-step morph) |
 | 06 | **Forecast** (compound card) | day radiogroup, *Detailed view* switch | Three glass layers. The card height is a spring, nested glass follows it each frame. **Sample data, not live** |
 
-## The new instruments (V3)
+## V3 collections
 
-![Iris, Droplet, Drift and Beads in the gallery](docs/media/v3/gallery-new.jpg)
+Built on the same renderer, springs, edge light and pixel system as the original six. Every focused view adds the study's full controls; looping studies have **pause / play, restart and 0.5× / 1× / 1.5×** (cards have a pause button too), and determinate ones accept a fraction from a slider that is labelled **"Simulated progress"**: a loop never shows a number.
 
-| # | Study | Input | What moves |
+### Controls
+
+| | Study | What it really does |
+| --- | --- | --- |
+| C1 | **Iris** | Aperture f/1.8–f/16. Turn the ring anywhere (unwrapped angles, `RotaryTracker`), click a printed stop, wheel, ← → Home End. Blades are one disc with the aperture polygon cut out, radius ∝ 1/N, so the opening is strictly monotonic; the readout shows (1.8/N)² as an illustration, not an exposure meter |
+| C2 | **Droplet** | Press and hold for 0.9 s **of elapsed time** (monotonic clock, not frames) to toggle Quiet mode; releasing early, sliding off, Escape, lost capture or blur cancel. The drop conserves area as it flattens |
+| C3 | **Drift** | Wind direction and strength in [−1, 1]² through one transform. The orb follows the hand exactly; the glass stretch lags on a follower spring. Release holds or springs back to zero (persisted). Shift for fine steps, Home or double-click centres |
+| C4 | **Liquid Tabs** | ARIA tabs (Overview, Motion, Optics, Source) with real panels. The selection is one fused glass membrane measured from the tab buttons: a leading lobe, a trailing lobe and an area-preserving neck. Interruptible; automatic activation |
+| C5 | **Beads** | Focus window on 24 h in 15-minute steps, ≥ 15 minutes (clamp, never swap). Drag either bead, drag the window between them as a whole, tap the track; fused beads are told apart by the first movement |
+| C6 | **Glass Scrubber** | A real video timeline. Thumbnails and hover previews are frames decoded from the video; a lens refracts them. A seek queue coalesces scrubs; play / pause / mute / restart / ±5 s; open your own file (object URL, never uploaded); clear errors for unsupported files |
+
+### Loaders
+
+| | Loader | What it really does |
+| --- | --- | --- |
+| L1 | **Merge** | Three droplets as one smooth-union surface; radii grow with √mass, so merging conserves area. Determinate 100% = one bead with a check |
+| L2 | **Tide Fill** | Determinate level is true **volume** through the rounded caps; a 24-column damped surface keeps its mean and is bounded; completion bubble and check |
+| L3 | **Pixel Assembly** | Sun → cloud → leaf → moon with particle identity; determinate mode assembles a chosen icon whose 100% frame is the authored bitmap exactly |
+| L4 | **Magnetic Beads** | Fixed-step physics with softened, capped forces and positional collisions; hold a magnet, flip polarity, set strength, settle into a check |
+| L5 | **Aperture Capture** | Camera only on Start (permission), live preview in the iris, Capture closes the shutter over the real frame, a local pixel pipeline (Pearl / Mono / Warm) drives a **measured** progress ring, PNG download. Upload fallback; denied / missing camera states; streams always released |
+| L6 | **Audio Render** | Three original presets rendered by an `OfflineAudioContext` (progress measured with `suspend()`), normalised to −1 dBFS, 16-bit PCM WAV; the waveform is the real samples' peak and RMS; play, seek, download |
+| L7 | **Orbit** · L8 **Crystallize** | The V3 looping loaders, now with the shared transport |
+
+### Optics & Materials
+
+| | Study | What it really does |
+| --- | --- | --- |
+| M1 | **Lens Scan** | A thick lens refracts a sheet texture (microtype, fine lines, checker, image); only what it covers moves. Ping-pong loop, determinate placement, completion |
+| M2 | **Caustic** | A CPU photon map traced through the lens's own profile and IOR (1.52) onto the plane; drag the light (kept off the glass), sphere or capsule, muted or high contrast |
+| M3 | **Glass Stitch** | Four exact quadrant fragments with per-corner radii meet in order; bridges form at contact and a bonding core makes the finished panel one continuous lens with no seams |
+
+| Liquid Tabs mid-travel | Merge | Lens Scan over the checker | Caustic |
 | --- | --- | --- | --- |
-| 07 | **Iris** (aperture slider, f/1.4–f/16, eight detents) | turn the ring anywhere, wheel while focused, ← → ↑ ↓ PageUp/Down Home End | The ring carries the f-number scale past a fixed index; seven blades close over an LED sun seen only through the aperture, magnified by a clear lens. Release projects the ring by angular speed and settles into a detent; every detent passed sends a click of light around the rim |
-| 08 | **Droplet** (press-and-hold button) | press and hold the drop, or hold Space / Enter | The drop flattens and spreads under pressure while water rises inside; at full (0.9 s) it releases even before you let go: the icon re-forms as a check and ripples cross the dish. Let go early and the water drains. Announced through a live region |
-| 09 | **Drift** (two-axis pad: warmth × energy, 0–100) | drag or throw the puck, press the pad, arrow keys (Shift ×4), Home centres | The puck follows the hand exactly, then keeps the throw: exponential friction, soft wall bounces that compress it on a spring. The field beneath is a calm/lively × cool/warm colour space; the puck’s icon changes by quadrant (Balanced at the centre) |
-| 10 | **Beads** (dual range, active hours in half-hour steps, ≥ 2 h) | drag either bead or press the track, ← → in 30 min, PageUp/Down 2 h, Home End | Two beads never cross; each stretches with its speed. As they approach, a third glass slab grows between them like liquid about to merge. The window glows dawn gold to dusk violet |
+| ![Tabs](docs/media/v3.1/tabs-travel.jpg) | ![Merge](docs/media/v3.1/merge.jpg) | ![Lens Scan](docs/media/v3.1/lens-scan.jpg) | ![Caustic](docs/media/v3.1/caustic.jpg) |
+| **Glass Scrubber** | **Aperture Capture** | **Audio Render** | **Glass Stitch 0 → 100%** |
+| ![Scrubber](docs/media/v3.1/scrubber.jpg) | ![Capture](docs/media/v3.1/capture.jpg) | ![Audio](docs/media/v3.1/audio.jpg) | ![Stitch](docs/media/v3.1/stitch.jpg) |
 
-| Iris on Midnight | Droplet releasing | Drift after a throw | Beads about to merge |
-| --- | --- | --- | --- |
-| ![Iris](docs/media/v3/iris-rest-midnight.jpg) | ![Droplet](docs/media/v3/droplet-released-pearl.jpg) | ![Drift](docs/media/v3/drift-moved-midnight.jpg) | ![Beads](docs/media/v3/beads-near-pearl.jpg) |
-
-## Glass Loaders
-
-A separate section below the instruments: four looping, non-interactive pieces. Each loops without a seam, sleeps when scrolled off screen or when the tab is hidden, announces “Loading” through `role="status"`, and switches to a calm variant (no travel, only a slow change of light) under `prefers-reduced-motion`. Each opens in the focused view like a study (`#/study/loader-orbit`).
-
-| | Loader | Loop | What moves |
-| --- | --- | --- | --- |
-| L1 | **Pixel Morph** | 4.6 s | An LED icon rebuilds itself through dots → hourglass → diamond → drop with the instruments’ particle morph; a light laps the tile rim once per beat |
-| L2 | **Tide Fill** | 3.6 s | A vessel fills and drains on a raised cosine; swaying surface, bright meniscus and rising LED bubbles, all refracted through the wall |
-| L3 | **Orbit** | 1.8 s | A glass bead laps a lens, surging and easing once per lap, trailing a comet; the lens rim lights where it passes |
-| L4 | **Crystallize** | 2.8 s | LED frost grows ring by ring into a snow crystal, sparkles, melts and falls; the tile’s frost follows the crystal |
-
-![Loader frames across one loop, Pearl](docs/media/v3/loader-morph-pearl.jpg)
-![Tide Fill frames](docs/media/v3/loader-tide-pearl.jpg)
-![Orbit frames on Midnight](docs/media/v3/loader-orbit-midnight.jpg)
-![Crystallize frames](docs/media/v3/loader-crystal-pearl.jpg)
+Media and data: the Scrubber's sample clip is rendered from this project's own loaders (`scripts/make-media.mjs`); test clips encode their time as a bar width so tests can read the decoded frame. The camera, uploads and audio never leave the browser.
 
 ## How it works (short version)
 
@@ -96,6 +108,8 @@ A separate section below the instruments: four looping, non-interactive pieces. 
 - **Motion:** semi-implicit spring integration with fixed sub-steps (`src/motion/spring.ts`). Velocity carries over when a target changes. Squash and stretch is a second spring chasing |velocity|, so the single arrival compression comes from the physics.
 - **Edge light:** a perimeter coordinate for rounded rects, exact arclength and identical in TypeScript and GLSL. The head advances by the distance the glass actually travels, with a soft trail and a wrap-safe seam.
 - **Pixel morphs:** 12×12 original pixel grids. Morphing uses seeded greedy minimum-distance matching, exits fly outward, entries split from the nearest square, and timing is staggered with bowed paths. Morphs can be time-driven (they continue from the rendered positions when interrupted) or scrubbed by a control value.
+- **Fused glass (V3):** a layer can be one optical surface made of several shapes (polynomial smooth-min of their distance fields). Refraction normals come from the fused field's gradient and perimeter-locked highlights use one shared frame, so necks and bridges bend light like the bodies they join. Shapes may also have a radius per corner.
+- **GPU contexts (V3):** a stage holds a WebGL2 context only while it is within 600 px of the viewport, and releases it while the focused view covers the gallery, so 23 studies never exceed the browser's context limit.
 - **Fallback:** Canvas2D frosted glass with rim and edge light but no refraction, labelled on screen. It is used without WebGL2, after context loss, or with `?fallback`.
 
 ## Browser support
@@ -114,7 +128,7 @@ Real iOS and Android hardware has not been tested. Mobile behaviour was verified
 ```bash
 npm run typecheck        # tsc -b
 npm run lint             # oxlint
-npm test                 # Vitest: 91 unit/component tests
+npm test                 # Vitest: 136 unit/component tests
 npx vitest run --coverage
 npm run test:e2e         # Playwright against the production build (Chromium, mobile, WebKit, Firefox)
 node scripts/perf.mjs    # frame-time probe with the six original studies animating (needs `npm run preview`); --all puts everything on screen
@@ -122,6 +136,9 @@ node scripts/perf-loaders.mjs            # frame times with the loaders on scree
 node scripts/capture-v3.mjs --env=pearl  # real-input captures of the V3 instruments
 node scripts/capture-loaders.mjs         # frames across one loop of each loader
 node scripts/shoot.mjs '/?manual#/study/solar' name 1200 820 --frames=24 --interval=33   # frame captures
+node scripts/frame.mjs --id=stitch --steps='[{"adv":500,"shot":"a"}]'   # scripted focused-view frames (?manual)
+node scripts/regress.mjs --only=solar,halo   # pixel regression against a baseline build (default :5375)
+node scripts/make-media.mjs                # regenerate the Scrubber sample clip and test fixtures
 ```
 
 Results at the time of writing are in [docs/QA.md](docs/QA.md).
@@ -141,7 +158,9 @@ Results at the time of writing are in [docs/QA.md](docs/QA.md).
 
 - Refraction covers content the stage owns: the procedural environment and the 2D content layers (pixel art, ticks, arcs). It does **not** refract arbitrary page DOM. That is a deliberate trade for live, per-frame refraction of moving glass (see the audit).
 - DOM text (readouts, labels) sits above the glass and is not refracted.
-- Each stage holds one WebGL2 context (fourteen in the gallery, plus one in the focused view). Stages off screen do not draw; browsers cap live contexts at about 16, so the gallery stays under that.
+- Each stage near the viewport holds one WebGL2 context; far-off stages and the gallery behind the focused view release theirs.
+- The Caustic is a CPU photon map with a stated approximation (two refracting surfaces, thin-lens travel, no reflections), recomputed when the light or lens changes.
+- Headless test browsers have no audio device: E2E uses Chrome's fake audio sink (`--disable-audio-output`) for playback timing, and a fake camera for capture.
 - The Forecast data is fixed sample data, and the Thermal value is a demo set point, not a measurement.
 
 ## Credits and license

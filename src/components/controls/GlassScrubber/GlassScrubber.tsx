@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
+import { useIsFocused } from '../../../app/presentation';
 import { GlassStage } from '../../../glass/GlassStage';
 import type { EnvironmentKind } from '../../../glass/types';
 import { usePointerDrag } from '../../../motion/usePointerDrag';
@@ -49,6 +50,7 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
   const mainSeek = useRef<SeekQueue | null>(null);
   const hoverSeek = useRef<SeekQueue | null>(null);
   const reducedMotion = useReducedMotion();
+  const focused = useIsFocused();
   const [source, setSource] = useState<Source | null>({ url: SAMPLE_URL, name: 'Sample · Glass loaders (10 s)', owned: false });
   const [status, setStatus] = useState<'empty' | 'loading' | 'ready' | 'error'>('loading');
   const [message, setMessage] = useState('');
@@ -59,10 +61,7 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
   const [thumbsReady, setThumbsReady] = useState(false);
 
   useEffect(() => ctrl.setReducedMotion(reducedMotion), [ctrl, reducedMotion]);
-  useEffect(() => {
-    ctrl.media = { ...ctrl.media, status, message };
-    ctrl.refresh();
-  }, [ctrl, status, message]);
+  useEffect(() => ctrl.updateMedia({ status, message }), [ctrl, status, message]);
 
   // revoke object URLs we created when the source changes or the study unmounts
   useEffect(() => {
@@ -76,7 +75,7 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
     const v = mainRef.current;
     const hv = hoverRef.current;
     if (!v || !hv) return;
-    ctrl.media = { ...ctrl.media, video: v };
+    ctrl.updateMedia({ video: v });
     mainSeek.current = new SeekQueue(v);
     hoverSeek.current = new SeekQueue(hv);
     const sync = () => {
@@ -112,8 +111,7 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
       const g = preview.getContext('2d');
       if (!g || hv.videoWidth === 0) return;
       g.drawImage(hv, 0, 0, preview.width, preview.height);
-      ctrl.media = { ...ctrl.media, preview, previewTime: hv.currentTime };
-      ctrl.refresh();
+      ctrl.updateMedia({ preview, previewTime: hv.currentTime });
     };
     v.addEventListener('loadedmetadata', onMeta);
     v.addEventListener('loadeddata', sync);
@@ -148,23 +146,15 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
     if (els.some((e) => !e)) return;
     const [v, tv, hv] = els as HTMLVideoElement[];
     let cancelled = false;
-    setThumbsReady(false);
-    ctrl.media = { ...ctrl.media, strip: null, preview: null, previewTime: null };
+    ctrl.updateMedia({ strip: null, preview: null, previewTime: null });
     if (!source) {
       for (const e of els as HTMLVideoElement[]) {
         e.pause();
         e.removeAttribute('src');
         e.load();
       }
-      // an unplayable file keeps its error message; otherwise this is the empty state
-      setStatus((st) => (st === 'error' ? st : 'empty'));
-      setDuration(0);
-      setTime(0);
-      ctrl.refresh();
       return;
     }
-    setStatus('loading');
-    setMessage('');
     for (const e of [v, tv, hv]) {
       e.src = source.url;
       e.load();
@@ -196,8 +186,7 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
         g.clip();
         g.drawImage(tv, i * cellW + (cellW - w) / 2, (strip.height - h) / 2, w, h);
         g.restore();
-        ctrl.media = { ...ctrl.media, strip };
-        ctrl.refresh();
+        ctrl.updateMedia({ strip });
       }
       if (!cancelled) setThumbsReady(true);
     };
@@ -206,6 +195,24 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
       cancelled = true;
     };
   }, [ctrl, source]);
+
+  /**
+   * Switch source. UI state resets here, in the event that causes it; the
+   * effect above only drives the media elements.
+   */
+  const changeSource = (next: Source | null, errorMessage?: string) => {
+    setThumbsReady(false);
+    setDuration(0);
+    setTime(0);
+    if (errorMessage) {
+      setStatus('error');
+      setMessage(errorMessage);
+    } else {
+      setStatus(next ? 'loading' : 'empty');
+      setMessage('');
+    }
+    setSource(next);
+  };
 
   const seek = useCallback((t: number) => {
     mainSeek.current?.request(t);
@@ -285,13 +292,11 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
     if (!file) return;
     const probe = mainRef.current;
     if (!file.type.startsWith('video/') || (probe && probe.canPlayType(file.type) === '')) {
-      setSource(null);
-      setStatus('error');
-      setMessage(`This browser cannot play “${file.name}” (${file.type || 'unknown type'})`);
+      changeSource(null, `This browser cannot play “${file.name}” (${file.type || 'unknown type'})`);
       return;
     }
     // stays local: an object URL, never uploaded
-    setSource({ url: URL.createObjectURL(file), name: file.name, owned: true });
+    changeSource({ url: URL.createObjectURL(file), name: file.name, owned: true });
   };
 
   const ready = status === 'ready';
@@ -324,9 +329,12 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
           <button type="button" className="chip" onClick={togglePlay} disabled={!ready} data-testid="scrubber-play">
             {playing ? 'Pause' : 'Play'}
           </button>
-          <button type="button" className="chip" onClick={() => seek(0)} disabled={!ready}>
-            Restart
-          </button>
+          {focused && (
+            <button type="button" className="chip" onClick={() => seek(0)} disabled={!ready}>
+              Restart
+            </button>
+          )}
+          {focused && (
           <button
             type="button"
             className="chip"
@@ -340,32 +348,34 @@ export function GlassScrubber({ env }: { env: EnvironmentKind }) {
           >
             {muted ? 'Unmute' : 'Mute'}
           </button>
+          )}
           <span className="scrubber-time" data-testid="scrubber-time">
             {formatTime(time)} / {formatTime(duration)}
           </span>
+          {focused && (
+            <>
           <label className="chip file-button">
             Open…
             <input type="file" accept="video/*" onChange={onFile} data-testid="scrubber-file" />
           </label>
-          <button type="button" className="chip" onClick={() => setSource({ url: SAMPLE_URL, name: 'Sample · Glass loaders (10 s)', owned: false })} disabled={source?.url === SAMPLE_URL && status !== 'error'}>
+          <button type="button" className="chip" onClick={() => changeSource({ url: SAMPLE_URL, name: 'Sample · Glass loaders (10 s)', owned: false })} disabled={source?.url === SAMPLE_URL && status !== 'error'}>
             Sample
           </button>
           <button
             type="button"
             className="chip"
-            onClick={() => {
-              setStatus('empty');
-              setSource(null);
-            }}
+            onClick={() => changeSource(null)}
             disabled={!source}
             data-testid="scrubber-eject"
           >
             Eject
           </button>
+            </>
+          )}
         </div>
-        <p className="study-status scrubber-status" style={{ left: 40, top: 412, width: SCRUB.W - 80 }} role="status" data-testid="scrubber-status" data-status={status} data-tone={status === 'error' ? 'error' : undefined}>
+        {focused && <p className="study-status scrubber-status" style={{ left: 40, top: 412, width: SCRUB.W - 80 }} role="status" data-testid="scrubber-status" data-status={status} data-tone={status === 'error' ? 'error' : undefined}>
           {status === 'error' ? message : status === 'empty' ? 'No video loaded' : status === 'loading' ? 'Loading…' : `${source?.name ?? ''}${message ? ` · ${message}` : ''}`}
-        </p>
+        </p>}
       </GlassStage>
       {/* decoders: drawn into the glass stage, never shown directly */}
       <div className="scrubber-decoders" aria-hidden="true">
