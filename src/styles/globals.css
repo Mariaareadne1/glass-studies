@@ -1281,3 +1281,90 @@ button {
   left: 0;
   top: 0;
 }
+
+/* ---------------------------------------------------------------- Aperture Capture / Audio Render panels */
+.capture-panel {
+  position: absolute;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  pointer-events: auto;
+  font-size: max(13px, calc(11px / var(--stage-scale, 1)));
+}
+
+.capture-panel .readout__eyebrow {
+  margin: 0;
+}
+
+.capture-phase {
+  margin: 0;
+  font-size: max(24px, calc(17px / var(--stage-scale, 1)));
+  font-weight: 480;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.capture-panel .chip {
+  background: var(--line);
+  min-height: 30px;
+  padding: 0.25rem 0.75rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.capture-panel .chip:disabled {
+  opacity: 0.45;
+}
+
+.capture-panel .chip-row {
+  background: var(--line);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  justify-self: start;
+}
+
+.capture-panel .chip-row .chip {
+  background: transparent;
+}
+
+.capture-panel .chip-row .chip[aria-checked='true'] {
+  background: var(--plinth);
+}
+
+.chip--primary {
+  background: var(--ink) !important;
+  color: var(--page) !important;
+}
+
+.capture-panel .study-status {
+  line-height: 1.4;
+}
+
+.audio-panel {
+  gap: 12px;
+}
+
+.audio-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.audio-seek {
+  flex: 1 1 140px;
+  display: flex;
+}
+
+.audio-seek input {
+  width: 100%;
+  accent-color: var(--ink-2);
+}

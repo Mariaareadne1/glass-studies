@@ -9,6 +9,7 @@ import { drawPixels } from '../../../pixels/PixelMorph';
 import { IRIS_STOPS } from '../../../state/controls';
 import { DOT_GAP, lightInk } from '../shared/ink';
 import { clamp, lerp, mixRGB, rgba, rubber } from '../shared/math';
+import { drawBlades } from './blades';
 
 export const IRIS = {
   W: 640,
@@ -239,7 +240,7 @@ export class IrisController implements StageController {
         glow: 4,
         glowAlpha: 0.5,
       });
-      this.drawBlades(g, r, rot, dark);
+      drawBlades(g, { cx: IRIS.cx, cy: IRIS.cy, outer: IRIS.blades, count: IRIS.bladeCount }, r, bladeTwist(r, rot), dark);
       // the fixed index mark above the ring
       g.fillStyle = dark ? 'rgba(236,234,250,0.85)' : 'rgba(60,56,88,0.7)';
       for (let i = 0; i < 3; i++) g.fillRect(cx - 1.6, cy - IRIS.ring - 22 + i * 5, 3.2, 3.2);
@@ -271,56 +272,6 @@ export class IrisController implements StageController {
         { shapes: [{ cx: kx, cy: ky, hw: 9, hh: 9, radius: 9, skew: 0, material: knurl }] },
       ],
     };
-  }
-
-  /** Seven blades: a disc with the aperture polygon cut out, seams spiralling outward. */
-  private drawBlades(g: CanvasRenderingContext2D, r: number, rot: number, dark: boolean): void {
-    const { cx, cy, blades: R, bladeCount: n } = IRIS;
-    const twist = bladeTwist(r, rot);
-    const pts = Array.from({ length: n }, (_, k) => {
-      const a = twist + (k * Math.PI * 2) / n;
-      return [cx + Math.cos(a) * r, cy + Math.sin(a) * r, a] as const;
-    });
-    const metal = g.createRadialGradient(cx, cy, r, cx, cy, R);
-    metal.addColorStop(0, dark ? '#3a3b4c' : '#a9a5c2');
-    metal.addColorStop(1, dark ? '#20212c' : '#d8d5e8');
-    g.save();
-    g.beginPath();
-    g.arc(cx, cy, R, 0, Math.PI * 2);
-    pts.forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y)));
-    g.closePath();
-    g.fillStyle = metal;
-    g.fill('evenodd');
-    // alternate blades a touch lighter so they read as overlapping leaves
-    pts.forEach(([x, y, a], k) => {
-      if (k % 2) return;
-      const [nx, ny] = pts[(k + 1) % n];
-      g.beginPath();
-      g.moveTo(x, y);
-      g.quadraticCurveTo(cx + Math.cos(a + 0.5) * R * 0.75, cy + Math.sin(a + 0.5) * R * 0.75, cx + Math.cos(a + 1.05) * R, cy + Math.sin(a + 1.05) * R);
-      g.arc(cx, cy, R, a + 1.05, a + 1.05 + (Math.PI * 2) / n);
-      g.quadraticCurveTo(cx + Math.cos(a + 0.5 + (Math.PI * 2) / n) * R * 0.75, cy + Math.sin(a + 0.5 + (Math.PI * 2) / n) * R * 0.75, nx, ny);
-      g.closePath();
-      g.fillStyle = dark ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.16)';
-      g.fill();
-    });
-    // seams
-    g.lineWidth = 1.1;
-    g.strokeStyle = dark ? 'rgba(180,180,220,0.22)' : 'rgba(80,74,120,0.28)';
-    pts.forEach(([x, y, a]) => {
-      g.beginPath();
-      g.moveTo(x, y);
-      g.quadraticCurveTo(cx + Math.cos(a + 0.5) * R * 0.75, cy + Math.sin(a + 0.5) * R * 0.75, cx + Math.cos(a + 1.05) * R, cy + Math.sin(a + 1.05) * R);
-      g.stroke();
-    });
-    // a soft shadow lip on the aperture edge
-    g.beginPath();
-    pts.forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y)));
-    g.closePath();
-    g.lineWidth = 2;
-    g.strokeStyle = dark ? 'rgba(0,0,0,0.45)' : 'rgba(40,34,70,0.3)';
-    g.stroke();
-    g.restore();
   }
 
   /** The f-number scale printed on the turning ring; the current stop sits under the index. */
