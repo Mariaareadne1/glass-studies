@@ -1,17 +1,21 @@
 import { expect, test } from '@playwright/test';
+import { CATALOG, TOTAL } from './catalog';
 import { collectErrors } from './helpers';
 
 test('gallery renders every study without errors and switches theme', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Glass Studies' })).toBeVisible();
-  await expect(page.locator('.gallery:not(.gallery--loaders) article.study')).toHaveCount(10);
-  await expect(page.locator('.gallery--loaders article.study')).toHaveCount(4);
-  for (const name of ['Solar', 'Atmosphere', 'Halo', 'Thermal', 'Modes', 'Forecast', 'Iris', 'Droplet', 'Drift', 'Beads']) {
-    await expect(page.getByRole('heading', { name })).toBeVisible();
+  await expect(page.locator('article.study')).toHaveCount(TOTAL);
+  for (const [collection, names] of Object.entries(CATALOG)) {
+    const region = page.getByRole('region', { name: collection, exact: true });
+    await expect(region.locator('article.study')).toHaveCount(names.length);
+    for (const name of names) await expect(region.getByRole('heading', { name, exact: true, level: 3 })).toBeAttached();
   }
-  const backends = await page.locator('.glass-stage').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.backend));
-  expect(backends.every((b) => b === 'webgl2' || b === 'canvas2d')).toBe(true);
+  // only stages near the viewport hold a GPU context; the first one is live
+  await expect(page.locator('.glass-stage').first()).toHaveAttribute('data-backend', /webgl2|canvas2d/);
+  const live = await page.locator('.glass-stage').evaluateAll((els) => els.filter((e) => (e as HTMLElement).dataset.backend).length);
+  expect(live).toBeLessThan(TOTAL);
   await page.getByRole('radio', { name: 'Dark' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.locator('#study-halo').scrollIntoViewIfNeeded();

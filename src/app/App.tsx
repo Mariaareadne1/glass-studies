@@ -4,6 +4,7 @@ import { Gallery } from '../components/gallery/Gallery';
 import { FocusView } from '../components/gallery/FocusView';
 import { ALL_STUDIES as ALL, GROUPS, studiesIn } from './registry';
 import { useTheme } from './theme';
+import { StageSuspendContext } from '../glass/stageActivity';
 
 const Inspector = lazy(() => import('../components/gallery/Inspector'));
 const showInspector = import.meta.env.DEV || new URLSearchParams(window.location.search).has('inspect');
@@ -37,6 +38,7 @@ export function App() {
 
   return (
     <>
+      <StageSuspendContext.Provider value={study !== null}>
       <div className="page" aria-hidden={study ? true : undefined} inert={study ? true : undefined}>
         <header className="masthead">
           <div>
@@ -80,6 +82,7 @@ export function App() {
           <button type="button" className="text-button" onClick={resetAll}>Reset all studies</button>
         </footer>
       </div>
+      </StageSuspendContext.Provider>
       {study && <FocusView study={study} theme={theme} onClose={close} />}
       {showInspector && (
         <Suspense fallback={null}>

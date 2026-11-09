@@ -1,17 +1,31 @@
-import { CrystalLoaderStage, MorphLoaderStage, OrbitLoaderStage, TideLoaderStage } from '../components/loaders/LoaderStages';
+import { AssemblyLoaderStage, CrystalLoaderStage, MergeLoaderStage, OrbitLoaderStage, TideLoaderStage } from '../components/loaders/LoaderStages';
 import type { StudyDef } from './studies';
 
 /** Glass Loaders: looping, non-interactive pieces built from the same glass, motion and pixel systems. */
 export const LOADERS: StudyDef[] = [
   {
+    id: 'loader-merge',
+    group: 'loaders',
+    num: 'L1',
+    title: 'Merge',
+    description: 'Three pearl droplets orbit, two touch and draw a liquid neck, fuse, take in the third and split again.',
+    hint: 'Loops every 4.8 s · determinate mode in focus',
+    detail:
+      'The droplets render as ONE optical surface: a smooth minimum of their distance fields, with refraction and highlights taken from the fused field, so the neck bends the grid beneath like the droplets do. Radii grow with the square root of the gathered mass, so merging conserves area. Every frame is a pure function of the clock (or of the supplied fraction in determinate mode, where 100% is one bead with a check).',
+    Component: MergeLoaderStage,
+    stores: [],
+    capabilities: ['SDF smooth union', 'Area-conserving', 'Determinate mode', 'Pause · speed'],
+  },
+  {
     id: 'loader-morph',
     group: 'loaders',
     num: 'L1',
-    title: 'Pixel Morph',
-    description: 'A glass tile whose LED icon rebuilds itself square by square: dots, hourglass, diamond, drop. A light laps the rim once per beat.',
-    hint: 'Loops every 4.6 s',
-    detail: 'Each beat runs the same particle morph as the instruments (seeded greedy matching, staggered flight), so the loader is a quiet rehearsal of the whole pixel system. With reduced motion the icons change in place and the rim only glows.',
-    Component: MorphLoaderStage,
+    title: 'Pixel Assembly',
+    description: 'Luminous squares gather into a sun, a cloud, a leaf and a moon, dissolve and reassemble inside a glass tile.',
+    hint: 'Loops every 6.4 s · determinate mode in focus',
+    detail: 'Every square keeps its identity: shared squares are matched by approximate minimum distance, surplus squares fly out and new ones split from a neighbour, and an interrupted morph continues from where the squares are. Determinate mode assembles a chosen icon from a seeded scatter in exact proportion to the supplied fraction, and 100% is the authored bitmap, pixel for pixel. With reduced motion the icons change in place.',
+    capabilities: ['Particle identity', 'Deterministic', 'Determinate mode', 'Pause · speed'],
+    Component: AssemblyLoaderStage,
     stores: [],
   },
   {

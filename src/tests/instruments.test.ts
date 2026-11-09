@@ -84,54 +84,105 @@ describe('Iris Dial', () => {
 });
 
 describe('Droplet Press', () => {
-  test('a full hold confirms exactly once, even while still held', () => {
-    const h = new HoldGesture(0.9, 1.4);
-    h.press();
+  /** A fake monotonic clock: tests advance time explicitly. */
+  const clock = () => {
+    const c = { t: 0, now: () => c.t };
+    return c;
+  };
+  const hold = (h: HoldGesture, c: { t: number }, seconds: number, frame = 1 / 60): number => {
     let confirms = 0;
-    for (let t = 0; t < 2; t += 1 / 60) if (h.step(1 / 60)) confirms++;
-    expect(confirms).toBe(1);
+    for (let t = 0; t < seconds - 1e-9; t += frame) {
+      c.t += frame;
+      if (h.update()) confirms++;
+    }
+    return confirms;
+  };
+
+  test('only a completed hold activates: releases at 10% and 80% do nothing, 100% fires once', () => {
+    for (const [frac, want] of [[0.1, 0], [0.8, 0], [1.05, 1]] as const) {
+      const c = clock();
+      const h = new HoldGesture(c.now, 0.9, 1.4);
+      h.press();
+      const n = hold(h, c, 0.9 * frac);
+      h.release();
+      expect(n + hold(h, c, 2)).toBe(want);
+    }
+  });
+
+  test('the threshold is elapsed time, not frame count: 4 fps confirms at the same moment as 60 fps', () => {
+    const c = clock();
+    const h = new HoldGesture(c.now, 0.9, 1.4);
+    h.press();
+    expect(hold(h, c, 0.75, 0.25)).toBe(0);
+    expect(hold(h, c, 0.25, 0.25)).toBe(1);
     expect(h.phase).toBe('confirmed');
   });
 
-  test('releasing early drains the fill and never confirms', () => {
-    const h = new HoldGesture(0.9, 1.4);
+  test('cancel (Escape, lost capture, blur) aborts and a new press restarts the timer from zero', () => {
+    const c = clock();
+    const h = new HoldGesture(c.now, 0.9, 1.4);
     h.press();
-    for (let t = 0; t < 0.5; t += 1 / 60) expect(h.step(1 / 60)).toBe(false);
-    expect(h.progress).toBeGreaterThan(0.4);
-    h.release();
-    for (let t = 0; t < 1; t += 1 / 60) expect(h.step(1 / 60)).toBe(false);
-    expect(h.progress).toBe(0);
-    expect(h.active).toBe(false);
+    hold(h, c, 0.7);
+    h.cancel();
+    expect(hold(h, c, 0.2)).toBe(0);
+    expect(h.phase).toBe('idle');
+    h.press();
+    expect(hold(h, c, 0.6)).toBe(0); // 0.6 s of a fresh hold is not enough
+    expect(hold(h, c, 0.35)).toBe(1);
   });
 
-  test('after the rest the gesture is ready again', () => {
-    const h = new HoldGesture(0.5, 0.5);
+  test('after the rest the gesture is ready again and the fill has drained', () => {
+    const c = clock();
+    const h = new HoldGesture(c.now, 0.5, 0.5);
     h.press();
-    for (let t = 0; t < 0.6; t += 1 / 60) h.step(1 / 60);
+    hold(h, c, 0.6);
     h.release();
-    for (let t = 0; t < 1.5; t += 1 / 60) h.step(1 / 60);
+    hold(h, c, 1.5);
     expect(h.phase).toBe('idle');
-    expect(h.progress).toBe(0);
+    expect(h.visual).toBe(0);
     h.press();
     expect(h.phase).toBe('holding');
   });
 
-  test('the drop flattens and spreads under pressure, then the loop goes idle', () => {
-    const c = new DropletController();
+  test('dozens of repeated holds each activate exactly once', () => {
+    const c = clock();
+    const h = new HoldGesture(c.now, 0.9, 1.4);
+    let total = 0;
+    for (let i = 0; i < 30; i++) {
+      h.press();
+      total += hold(h, c, 1.0);
+      h.release();
+      total += hold(h, c, 1.6);
+    }
+    expect(total).toBe(30);
+  });
+
+  test('the drop flattens and spreads with conserved area, then the loop goes idle', () => {
+    const c = clock();
+    const d = new DropletController(c.now);
     let confirmed = 0;
-    c.onConfirm = () => confirmed++;
-    c.press();
-    run(c, 0.4);
-    const pressed = c.shape();
+    d.onConfirm = () => confirmed++;
+    const runD = (s: number) => {
+      let moving = true;
+      for (let t = 0; t < s; t += 1 / 60) {
+        c.t += 1 / 60;
+        moving = d.step(1 / 60);
+      }
+      return moving;
+    };
+    d.press();
+    runD(0.4);
+    const pressed = d.shape();
     expect(pressed.hw).toBeGreaterThan(DROP.r);
     expect(pressed.hh).toBeLessThan(DROP.r);
-    run(c, 0.8);
+    expect((pressed.hw * pressed.hh) / (DROP.r * DROP.r)).toBeCloseTo(1, 1);
+    runD(0.8);
     expect(confirmed).toBe(1);
-    c.release();
-    expect(run(c, 4)).toBe(false);
-    expect(c.shape().hw).toBeCloseTo(DROP.r, 1);
-    expectRenderable(c.scene(ctx()));
-    expectRenderable(c.scene(ctx('midnight')));
+    d.release();
+    expect(runD(4)).toBe(false);
+    expect(d.shape().hw).toBeCloseTo(DROP.r, 1);
+    expectRenderable(d.scene(ctx()));
+    expectRenderable(d.scene(ctx('midnight')));
   });
 });
 

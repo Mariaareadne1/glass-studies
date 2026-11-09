@@ -62,6 +62,11 @@ export abstract class LoopController implements StageController {
     return () => this.listeners.delete(l);
   }
 
+  /** Tell subscribers a non-transport option changed (icon, geometry…). */
+  notify(): void {
+    this.changed();
+  }
+
   private changed(): void {
     this.listeners.forEach((l) => l());
     this.invalidateFn();

@@ -42,6 +42,16 @@ function kick(): void {
   }
 }
 
+/**
+ * Monotonic clock in seconds shared with the frame loop: real time normally,
+ * the manual clock under ?manual. Use it for anything that must be measured in
+ * elapsed time rather than in frames (press-and-hold thresholds).
+ */
+export function clockNow(): number {
+  if (manual) return manualNow / 1000;
+  return (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+}
+
 export function register(t: Tick): () => void {
   ticks.add(t);
   return () => {

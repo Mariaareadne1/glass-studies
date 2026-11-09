@@ -11,9 +11,22 @@ class Observer {
   unobserve() {}
 }
 
+/** Reports every observed stage as on screen, so the stage tries to create its renderer. */
+class VisibleObserver {
+  private cb: (entries: { isIntersecting: boolean }[]) => void;
+  constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+    this.cb = cb;
+  }
+  observe() {
+    this.cb([{ isIntersecting: true }]);
+  }
+  disconnect() {}
+  unobserve() {}
+}
+
 beforeAll(() => {
   vi.stubGlobal('ResizeObserver', Observer);
-  vi.stubGlobal('IntersectionObserver', Observer);
+  vi.stubGlobal('IntersectionObserver', VisibleObserver);
   vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
   // jsdom has no canvas: the stage must degrade without throwing
   vi.spyOn(console, 'error').mockImplementation(() => undefined);

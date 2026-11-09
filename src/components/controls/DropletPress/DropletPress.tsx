@@ -3,7 +3,7 @@ import type { KeyboardEvent } from 'react';
 import { GlassStage } from '../../../glass/GlassStage';
 import type { EnvironmentKind } from '../../../glass/types';
 import { usePointerDrag } from '../../../motion/usePointerDrag';
-import { dropletStore } from '../../../state/controls';
+import { dropletStore, quietStore } from '../../../state/controls';
 import { useStore } from '../../../state/persistence';
 import { useReducedMotion } from '../../../state/reducedMotion';
 import { DROP, DropletController } from './dropletController';
@@ -12,6 +12,7 @@ const HOLD_KEYS = new Set([' ', 'Enter']);
 
 export function DropletPress({ env }: { env: EnvironmentKind }) {
   const count = useStore(dropletStore);
+  const quiet = useStore(quietStore);
   const [ctrl] = useState(() => new DropletController());
   const [status, setStatus] = useState<'ready' | 'holding' | 'released'>('ready');
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -23,6 +24,8 @@ export function DropletPress({ env }: { env: EnvironmentKind }) {
   useEffect(() => {
     ctrl.setOnConfirm(() => {
       dropletStore.set((n) => n + 1);
+      // the demonstrated action: a completed hold toggles quiet mode; reversing needs a new hold
+      quietStore.set((q) => !q);
       setStatus('released');
     });
   }, [ctrl]);
@@ -41,6 +44,19 @@ export function DropletPress({ env }: { env: EnvironmentKind }) {
     ctrl.release();
     setStatus((s) => (s === 'holding' ? 'ready' : s));
   };
+  const cancel = () => {
+    ctrl.cancel();
+    setStatus((s) => (s === 'holding' ? 'ready' : s));
+  };
+  // never leave a hold running: window blur and unmount cancel it
+  useEffect(() => {
+    const onBlur = () => ctrl.cancel();
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('blur', onBlur);
+      ctrl.cancel();
+    };
+  }, [ctrl]);
 
   usePointerDrag(overlayRef, scaleRef, {
     onStart(p) {
@@ -49,13 +65,25 @@ export function DropletPress({ env }: { env: EnvironmentKind }) {
       start();
       return true;
     },
-    onMove() {},
-    onEnd() {
-      stop();
+    onMove(p) {
+      // sliding off the drop aborts the hold
+      if (ctrl.hold.phase === 'holding' && !ctrl.hitDrop(p.x, p.y)) cancel();
+    },
+    onEnd(_p, cancelled) {
+      if (cancelled) cancel();
+      else stop();
     },
   });
 
   const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && ctrl.hold.phase === 'holding') {
+      // handled here so the focused view does not close as well
+      e.preventDefault();
+      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
+      cancel();
+      return;
+    }
     if (!HOLD_KEYS.has(e.key)) return;
     e.preventDefault();
     if (!e.repeat) start();
@@ -66,13 +94,15 @@ export function DropletPress({ env }: { env: EnvironmentKind }) {
     stop();
   };
 
-  const line = status === 'released' ? 'Released' : status === 'holding' ? 'Keep holding…' : 'Press and hold';
+  const action = quiet ? 'turn quiet mode off' : 'turn quiet mode on';
+  const line = status === 'released' ? (quiet ? 'Quiet mode on' : 'Quiet mode off') : status === 'holding' ? 'Keep holding… (Esc cancels)' : `Hold to ${action}`;
   return (
     <GlassStage controller={ctrl} width={DROP.W} height={DROP.H} env={env} label="Droplet press-and-hold button" scaleRef={scaleRef} overlayRef={overlayRef}>
       <button
         ref={buttonRef}
         type="button"
-        aria-label="Release a drop"
+        aria-label={`Press and hold to ${action}`}
+        aria-pressed={quiet}
         aria-describedby="droplet-hint"
         data-testid="droplet"
         data-state={status}
@@ -85,10 +115,12 @@ export function DropletPress({ env }: { env: EnvironmentKind }) {
       />
       <p className="stage-caption stage-caption--stack" style={{ top: DROP.dishY + 50 }}>
         <span id="droplet-hint" className="is-active">{line}</span>
-        <span data-testid="droplet-count">{count === 1 ? '1 drop released' : `${count} drops released`}</span>
+        <span data-testid="droplet-quiet" data-quiet={quiet}>
+          Quiet mode {quiet ? 'armed' : 'off'} · <span data-testid="droplet-count">{count === 1 ? '1 hold' : `${count} holds`}</span>
+        </span>
       </p>
       <p className="sr-only" role="status" aria-live="polite">
-        {status === 'released' ? `Drop released. ${count} in total.` : ''}
+        {status === 'released' ? `Hold complete. Quiet mode ${quiet ? 'on' : 'off'}.` : ''}
       </p>
     </GlassStage>
   );

@@ -3,6 +3,7 @@ import { perimeterLength } from '../../../glass/geometry';
 import { THUMB, TRACK, smoked, withGlow, withTint } from '../../../glass/materialPresets';
 import type { GlassScene, RGB } from '../../../glass/types';
 import { EdgeLight } from '../../../motion/edgeLight';
+import { clockNow } from '../../../motion/scheduler';
 import { reduced, Spring, SPRINGS } from '../../../motion/spring';
 import { ledPixels } from '../../../pixels/iconDefinitions';
 import { drawPixels, PixelMorpher } from '../../../pixels/PixelMorph';
@@ -33,7 +34,7 @@ const RIPPLE_SECONDS = 1.3;
  * the water drains back.
  */
 export class DropletController implements StageController {
-  readonly hold = new HoldGesture();
+  readonly hold: HoldGesture;
   private pressure = new Spring(0, SPRINGS.deform);
   private icon = new PixelMorpher(ledPixels('drop'));
   private edge = new EdgeLight(0.75, 1.2);
@@ -44,6 +45,10 @@ export class DropletController implements StageController {
   private showingCheck = false;
   /** Called once per completed hold. */
   onConfirm: () => void = () => undefined;
+
+  constructor(now: () => number = clockNow) {
+    this.hold = new HoldGesture(now);
+  }
 
   setOnConfirm(fn: () => void): void {
     this.onConfirm = fn;
@@ -73,15 +78,20 @@ export class DropletController implements StageController {
     this.invalidate();
   }
 
+  cancel(): void {
+    this.hold.cancel();
+    this.invalidate();
+  }
+
   step(dt: number): boolean {
     this.clock += dt;
-    if (this.hold.step(dt)) {
+    if (this.hold.update()) {
       this.onConfirm();
       this.edge.impulse(1);
       if (!this.reducedMotion) this.ripples.push(0, -0.22, -0.44);
       this.morph(true);
     }
-    if (this.hold.phase === 'idle' && this.showingCheck && this.hold.progress < 0.6) this.morph(false);
+    if (this.hold.phase === 'idle' && this.showingCheck && this.hold.visual < 0.6) this.morph(false);
     this.pressure.set(this.hold.isHeld && this.hold.phase !== 'confirmed' ? 1 : this.hold.isHeld ? 0.55 : 0);
     this.pressure.step(dt);
     this.ripples = this.ripples.map((t) => t + dt).filter((t) => t < RIPPLE_SECONDS);
@@ -101,15 +111,16 @@ export class DropletController implements StageController {
   /** The drop flattens and spreads under pressure; the squash overshoots on release. */
   shape(): { cx: number; cy: number; hw: number; hh: number; radius: number } {
     const p = this.pressure.x;
-    const swell = this.hold.phase === 'holding' ? Math.sin(this.clock * 9) * 0.6 * this.hold.progress : 0;
-    const hw = DROP.r * (1 + 0.17 * p) + swell;
-    const hh = DROP.r * (1 - 0.19 * p) - swell * 0.5;
+    const swell = this.hold.phase === 'holding' ? Math.sin(this.clock * 9) * 0.6 * this.hold.visual : 0;
+    // volume is (approximately) conserved: the footprint widens as the drop flattens
+    const hw = DROP.r * (1 + 0.18 * p) + swell;
+    const hh = (DROP.r * DROP.r) / hw;
     return { cx: DROP.cx, cy: DROP.cy + (DROP.r - hh) * 0.95, hw, hh, radius: Math.min(hw, hh) };
   }
 
   scene(ctx: SceneContext): GlassScene {
     const dark = ctx.dark;
-    const fill = this.hold.progress;
+    const fill = this.hold.visual;
     const done = this.hold.phase === 'confirmed' ? 1 : 0;
     const tint = mixRGB(WATER, DONE, done * 0.7);
     const shape = this.shape();

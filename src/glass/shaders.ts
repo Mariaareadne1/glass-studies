@@ -399,20 +399,27 @@ float unionSd(vec2 d) {
 vec3 applyUnion(vec2 d, vec3 base) {
   float sd = unionSd(d);
   if (sd > 70.0) return base;
-  // nearest and second-nearest shapes, for the material blend and local frame
+  // nearest and second-nearest shapes, for the material blend
   int n0 = 0;
   float s0 = 1e5, s1 = 1e5;
   int n1 = 0;
-  vec2 lp0 = vec2(0.0), h0 = vec2(1.0);
-  float r0 = 0.0;
+  // one shared frame for the whole fused body (its bounding box), so the
+  // perimeter-locked highlights are continuous across the neck: no seams
+  vec2 bmin = vec2(1e5), bmax = vec2(-1e5);
   for (int i = 0; i < MAXS; i++) {
     if (i >= uCount) break;
     vec2 lp, h;
     float r;
     float si = shapeSd(i, d, lp, h, r);
-    if (si < s0) { s1 = s0; n1 = n0; s0 = si; n0 = i; lp0 = lp; h0 = h; r0 = r; }
+    if (si < s0) { s1 = s0; n1 = n0; s0 = si; n0 = i; }
     else if (si < s1) { s1 = si; n1 = i; }
+    bmin = min(bmin, uGeom[i].xy - uGeom[i].zw);
+    bmax = max(bmax, uGeom[i].xy + uGeom[i].zw);
   }
+  vec2 bc = (bmin + bmax) * 0.5;
+  vec2 h0 = max((bmax - bmin) * 0.5, vec2(1.0));
+  vec2 lp0 = vec2(d.x - bc.x, -(d.y - bc.y));
+  float r0 = min(h0.x, h0.y);
   float e = 0.75 / uScale + 0.25;
   // gradient in design space (y down) -> outward in local y-up frame
   vec2 gr = vec2(unionSd(d + vec2(e, 0.0)) - unionSd(d - vec2(e, 0.0)),

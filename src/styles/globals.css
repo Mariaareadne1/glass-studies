@@ -1036,8 +1036,7 @@ button {
 /* focused views with a control row give the stage a little less height */
 .focus__frame:has(.transport),
 .focus__frame:has(.study-controls) {
-  width: min(100%, 1080px, calc((100dvh - 300px) * 640 / 440));
-  min-width: min(100%, 560px);
+  width: min(100%, 1080px, max(320px, calc((100dvh - 330px) * 640 / 440)));
 }
 
 .transport,
@@ -1158,4 +1157,63 @@ button {
 
 .study-status[data-tone='error'] {
   color: var(--danger, #b4434f);
+}
+
+/* ---------------------------------------------------------------- Liquid Tabs */
+.liquid-tabs {
+  position: absolute;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  pointer-events: auto;
+}
+
+.liquid-tabs__tab {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: max(15px, calc(12px / var(--stage-scale, 1)));
+  font-weight: 520;
+  letter-spacing: -0.01em;
+  color: var(--ink-2);
+  cursor: pointer;
+  border-radius: 18px;
+}
+
+.liquid-tabs__tab[aria-selected='true'] {
+  color: var(--ink);
+}
+
+.liquid-tabs__tab:focus-visible {
+  outline: 2px solid var(--focus, currentColor);
+  outline-offset: -4px;
+}
+
+.liquid-tabs__panel {
+  position: absolute;
+  left: 76px;
+  top: 168px;
+  width: 488px;
+  pointer-events: auto;
+  border-radius: 12px;
+}
+
+.liquid-tabs__panel:focus-visible {
+  outline: 2px solid var(--focus, currentColor);
+  outline-offset: 8px;
+}
+
+.liquid-tabs__lead {
+  margin: 0 0 12px;
+  font-size: max(26px, calc(18px / var(--stage-scale, 1)));
+  font-weight: 480;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.liquid-tabs__body {
+  margin: 0;
+  font-size: max(15px, calc(12px / var(--stage-scale, 1)));
+  line-height: 1.55;
+  color: var(--ink-2);
 }

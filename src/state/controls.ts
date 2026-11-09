@@ -38,6 +38,8 @@ export const dropletStore = createStore<number>('droplet', 0, (raw) => {
   const v = clampNumber(0, 1e6)(raw);
   return v === null ? null : Math.floor(v);
 });
+/** Droplet Press: the setting a completed hold toggles (a deliberate, two-way action). */
+export const quietStore = createStore<boolean>('droplet-quiet', false, (raw) => (typeof raw === 'boolean' ? raw : null));
 /** Drift Pad: warmth (x) and energy (y), 0..100. */
 export interface DriftValue {
   x: number;
@@ -69,7 +71,14 @@ export const rangeStore = createStore<RangeValue>('range', { start: 8, end: 18 }
   return { start: snap(a), end: snap(b) };
 });
 
-export const ALL_STORES = [solarStore, atmosphereStore, haloStore, thermalStore, modeStore, forecastDayStore, forecastDetailStore, irisStore, dropletStore, driftStore, rangeStore];
+/** Liquid Tabs: selected tab index. */
+export const TAB_NAMES = ['Overview', 'Motion', 'Optics', 'Source'] as const;
+export const tabsStore = createStore<number>('tabs', 0, (raw) => {
+  const v = clampNumber(0, TAB_NAMES.length - 1)(raw);
+  return v === null ? null : Math.round(v);
+});
+
+export const ALL_STORES = [tabsStore, quietStore, solarStore, atmosphereStore, haloStore, thermalStore, modeStore, forecastDayStore, forecastDetailStore, irisStore, dropletStore, driftStore, rangeStore];
 
 export function resetAll(): void {
   ALL_STORES.forEach((s) => s.reset());

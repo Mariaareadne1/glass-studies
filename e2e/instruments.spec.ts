@@ -42,29 +42,58 @@ test.describe('07 Iris', () => {
   });
 });
 
-test.describe('08 Droplet', () => {
-  test('a full hold releases a drop; a short press does not', async ({ page }) => {
+test.describe('C2 Droplet', () => {
+  test('only a completed hold toggles quiet mode; short press, slide-off and Escape cancel', async ({ page }) => {
     const errors = collectErrors(page);
     const focus = await openStudy(page, 'droplet');
     const stage = focus.locator('.glass-stage');
     const count = focus.getByTestId('droplet-count');
-    await expect(count).toHaveText('0 drops released');
+    const quiet = focus.getByTestId('droplet-quiet');
+    await expect(count).toHaveText('0 holds');
+    await expect(quiet).toHaveAttribute('data-quiet', 'false');
 
-    await holdDesign(page, stage, [320, 214], 250);
+    // 10% and ~80% of the 0.9 s threshold: nothing happens
+    await holdDesign(page, stage, [320, 214], 90);
+    await holdDesign(page, stage, [320, 214], 650);
     await page.waitForTimeout(400);
-    await expect(count).toHaveText('0 drops released');
+    await expect(count).toHaveText('0 holds');
 
+    // pressing then sliding off the drop cancels, even if held long enough afterwards
+    const box = (await stage.boundingBox())!;
+    const s = box.width / 640;
+    await page.mouse.move(box.x + 320 * s, box.y + 214 * s);
+    await page.mouse.down();
+    await page.waitForTimeout(300);
+    await page.mouse.move(box.x + 560 * s, box.y + 60 * s, { steps: 5 });
+    await page.waitForTimeout(900);
+    await page.mouse.up();
+    await expect(count).toHaveText('0 holds');
+
+    // a full hold completes once and arms quiet mode
     await holdDesign(page, stage, [320, 214], 1200);
-    await expect(count).toHaveText('1 drop released');
-    await expect(focus.getByRole('status')).toContainText('Drop released');
+    await expect(count).toHaveText('1 hold');
+    await expect(quiet).toHaveAttribute('data-quiet', 'true');
+    await expect(focus.getByRole('status').first()).toContainText('Quiet mode on');
 
-    // keyboard: hold Space
+    // keyboard: Escape during a Space hold cancels without closing the focused view
     await page.waitForTimeout(1900);
-    await focus.getByRole('button', { name: 'Release a drop' }).focus();
+    const button = focus.getByRole('button', { name: /Press and hold to turn quiet mode off/ });
+    await button.focus();
+    await page.keyboard.down(' ');
+    await page.waitForTimeout(400);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(800);
+    await page.keyboard.up(' ');
+    await expect(page.locator('.focus')).toBeVisible();
+    await expect(count).toHaveText('1 hold');
+
+    // a full keyboard hold reverses the setting
+    await button.focus();
     await page.keyboard.down(' ');
     await page.waitForTimeout(1150);
     await page.keyboard.up(' ');
-    await expect(count).toHaveText('2 drops released');
+    await expect(count).toHaveText('2 holds');
+    await expect(quiet).toHaveAttribute('data-quiet', 'false');
     expect(errors).toEqual([]);
   });
 });

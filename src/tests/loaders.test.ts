@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import type { SceneContext } from '../glass/GlassStage';
 import { MAX_LAYERS, MAX_SHAPES_PER_LAYER } from '../glass/types';
 import { phase } from '../components/loaders/loopController';
-import { MORPH_BEAT, MORPH_SEQUENCE, MorphLoader } from '../components/loaders/morphLoader';
+import { ASSEMBLY_BEAT as MORPH_BEAT, ASSEMBLY_SEQUENCE as MORPH_SEQUENCE, AssemblyLoader as MorphLoader } from '../components/loaders/assemblyLoader';
 import { TIDE_PERIOD, TideLoader, tideLevel } from '../components/loaders/tideLoader';
 import { ORBIT_PERIOD, OrbitLoader, orbitAngle } from '../components/loaders/orbitLoader';
 import { CRYSTAL_PERIOD, CrystalLoader, crystalAmount } from '../components/loaders/crystalLoader';
@@ -68,7 +68,7 @@ describe('Glass Loaders loop seamlessly', () => {
     expect(c.states(0.95)).toHaveLength(0);
   });
 
-  test('the morph loader steps through its sequence once per beat and wraps', () => {
+  test('the assembly loader steps through its sequence once per beat and wraps', () => {
     const m = new MorphLoader();
     const seen: string[] = [m.currentIcon];
     for (let i = 0; i < MORPH_SEQUENCE.length; i++) {

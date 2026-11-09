@@ -111,7 +111,8 @@ export interface GlassRenderer {
   readonly kind: 'webgl2' | 'canvas2d';
   resize(widthPx: number, heightPx: number, unitsToPx: number): void;
   render(scene: GlassScene): void;
-  destroy(): void;
+  /** @param release drop the GPU context now even if the canvas stays in the document */
+  destroy(release?: boolean): void;
 }
 
 export const MAX_LAYERS = 3;

@@ -10,7 +10,8 @@ import { IrisDial } from '../components/controls/IrisDial/IrisDial';
 import { DropletPress } from '../components/controls/DropletPress/DropletPress';
 import { DriftPad } from '../components/controls/DriftPad/DriftPad';
 import { RangeBeads } from '../components/controls/RangeBeads/RangeBeads';
-import { atmosphereStore, driftStore, dropletStore, forecastDayStore, forecastDetailStore, haloStore, irisStore, modeStore, rangeStore, solarStore, thermalStore } from '../state/controls';
+import { LiquidTabs } from '../components/controls/LiquidTabs/LiquidTabs';
+import { atmosphereStore, driftStore, dropletStore, forecastDayStore, forecastDetailStore, haloStore, irisStore, modeStore, rangeStore, solarStore, tabsStore, thermalStore } from '../state/controls';
 
 export type StudyGroup = 'originals' | 'controls' | 'loaders' | 'optics';
 
@@ -105,7 +106,7 @@ export const STUDIES: StudyDef[] = [
   {
     id: 'iris',
     group: 'controls',
-    num: '07',
+    num: 'C1',
     title: 'Iris',
     description: 'An aperture dial. Turn the glass ring and seven blades close over a small sun; the f-number scale rides past a fixed index and clicks into each stop.',
     hint: 'Turn the ring · wheel or arrow keys when focused',
@@ -117,7 +118,7 @@ export const STUDIES: StudyDef[] = [
   {
     id: 'droplet',
     group: 'controls',
-    num: '08',
+    num: 'C2',
     title: 'Droplet',
     description: 'A press-and-hold button. The glass drop flattens and spreads under your finger while water rises inside; hold to the top and it releases.',
     hint: 'Press and hold the drop · or hold Space / Enter',
@@ -129,7 +130,7 @@ export const STUDIES: StudyDef[] = [
   {
     id: 'drift',
     group: 'controls',
-    num: '09',
+    num: 'C3',
     title: 'Drift',
     description: 'A two-axis mood pad. Throw the glass puck and it drifts across a calm-to-lively, cool-to-warm field, slows with friction and bounces softly off the walls.',
     hint: 'Drag or throw the puck · arrow keys when focused',
@@ -139,9 +140,22 @@ export const STUDIES: StudyDef[] = [
     stores: [driftStore],
   },
   {
+    id: 'tabs',
+    group: 'controls',
+    num: 'C4',
+    title: 'Liquid Tabs',
+    description: 'A tab selector whose single glass membrane flows between Overview, Motion, Optics and Source, drawing out a liquid neck as it travels.',
+    hint: 'Click a tab · ← → Home End',
+    detail:
+      'The membrane is measured from the real tab buttons and drawn as three shapes fused into one optical surface: a leading lobe, a trailing lobe and an area-preserving neck that thins as they separate. Retargeting keeps both springs’ positions and velocities, so a rapid 1→4→2 flows on without splitting. Arrow keys move focus and selection together (automatic activation).',
+    Component: LiquidTabs,
+    stores: [tabsStore],
+    capabilities: ['ARIA tabs', 'Fused refraction', 'Interruptible', 'Real panels'],
+  },
+  {
     id: 'beads',
     group: 'controls',
-    num: '10',
+    num: 'C5',
     title: 'Beads',
     description: 'A dual range for active hours. Two glass beads slide along one track; as they approach, a thin bridge of glass grows between them, as if they were about to merge.',
     hint: 'Drag either bead · arrow keys in half hours',

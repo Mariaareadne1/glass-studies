@@ -261,7 +261,7 @@ export class WebGLGlassRenderer implements GlassRenderer {
     }
   }
 
-  destroy(): void {
+  destroy(release = false): void {
     const gl = this.gl;
     this.canvas.removeEventListener('webglcontextlost', this.onLost);
     for (const t of this.targets) {
@@ -278,6 +278,10 @@ export class WebGLGlassRenderer implements GlassRenderer {
     // limit – but only once the canvas has really left the document (React
     // StrictMode remounts reuse the same canvas element and its context).
     const canvas = this.canvas;
+    if (release) {
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      return;
+    }
     setTimeout(() => {
       if (!canvas.isConnected) gl.getExtension('WEBGL_lose_context')?.loseContext();
     }, 0);

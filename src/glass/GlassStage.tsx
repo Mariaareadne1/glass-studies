@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode, RefObject } from 'react';
 import { register, wake } from '../motion/scheduler';
 import { CanvasGlassRenderer } from './canvasRenderer';
 import { detectBackend } from './rendererCapabilities';
 import type { RendererBackend } from './rendererCapabilities';
 import { sceneForEnv } from './lightMaterial';
+import { StageSuspendContext } from './stageActivity';
 import { onTuningChange } from './tuning';
 import type { ContentLayer, EnvironmentKind, GlassRenderer, GlassScene } from './types';
 import { WebGLGlassRenderer } from './webglRenderer';
@@ -75,6 +76,22 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
     controller.setAttention?.(on);
     invalidateRef.current?.();
   };
+  const suspended = useContext(StageSuspendContext);
+  // a GPU context exists only while the stage is near the viewport and not covered
+  const [near, setNear] = useState(false);
+  const [generation, setGeneration] = useState(0);
+  const active = near && !suspended;
+  const activeRef = useRef(active);
+  useLayoutEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const io = new IntersectionObserver((entries) => setNear(entries.some((e) => e.isIntersecting)), { rootMargin: '600px 0px' });
+    io.observe(host);
+    return () => io.disconnect();
+  }, []);
   const live = useRef({ env, controller });
   useLayoutEffect(() => {
     live.current = { env, controller };
@@ -99,7 +116,7 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
   useEffect(() => {
     const canvas = canvasRef.current;
     const host = hostRef.current;
-    if (!canvas || !host) return;
+    if (!canvas || !host || !active) return;
     let renderer: GlassRenderer;
     try {
       renderer = backend === 'webgl2' ? new WebGLGlassRenderer(canvas) : new CanvasGlassRenderer(canvas);
@@ -210,11 +227,16 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
       io.disconnect();
       ro.disconnect();
       offTune();
-      renderer.destroy();
+      // deactivated (scrolled far away / covered): drop the GPU context now. A released
+      // context cannot be revived on the same canvas, so the next activation gets a fresh one.
+      // (A StrictMode remount keeps `active` true and reuses the live context.)
+      const release = !activeRef.current;
+      renderer.destroy(release);
       invalidateRef.current = null;
+      if (release) setGeneration((g) => g + 1);
     };
-    // controller changes are picked up via `live`; renderer lifetime follows backend
-  }, [backend, width, height, sRef]);
+    // controller changes are picked up via `live`; renderer lifetime follows backend and activity
+  }, [backend, width, height, sRef, active]);
 
   // redraw when environment or controller identity changes
   useEffect(() => {
@@ -234,7 +256,7 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
       onFocus={() => engage(true)}
       onBlur={() => engage(false)}
     >
-      <canvas key={backend} ref={canvasRef} className="glass-stage__canvas" aria-hidden="true" />
+      <canvas key={`${backend}-${generation}`} ref={canvasRef} className="glass-stage__canvas" aria-hidden="true" />
       <div
         ref={overlayRef}
         className="glass-stage__overlay"
