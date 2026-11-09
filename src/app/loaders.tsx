@@ -1,4 +1,5 @@
 import { AssemblyLoaderStage, CrystalLoaderStage, MergeLoaderStage, OrbitLoaderStage, TideLoaderStage } from '../components/loaders/LoaderStages';
+import { MagneticBeads } from '../components/loaders/MagneticBeads';
 import type { StudyDef } from './studies';
 
 /** Glass Loaders: looping, non-interactive pieces built from the same glass, motion and pixel systems. */
@@ -60,5 +61,18 @@ export const LOADERS: StudyDef[] = [
     detail: 'Cells appear in order of distance from the centre with a little jitter, hold while a few catch the light, then melt from the outside in and fall. The tile’s frost follows the crystal, so the glass itself seems to freeze. With reduced motion the crystal stays and gently brightens.',
     Component: CrystalLoaderStage,
     stores: [],
+  },
+  {
+    id: 'loader-magnet',
+    group: 'loaders',
+    num: 'L4',
+    title: 'Magnetic Beads',
+    description: 'Four clear glass beads slide in a pearl track, drawn toward invisible magnets, repelling before they touch; then the polarity flips.',
+    hint: 'Press the track to hold a magnet · polarity and strength in focus',
+    detail:
+      'A physically inspired simulation, not exact electromagnetism: magnet forces fall off as 1/(d + 38), every force and speed is capped, beads repel at short range and are separated positionally, and integration runs in fixed 1/240 s steps with damping, so long frames and resumes cannot explode. The cycle is deterministic from a seed. “Complete” draws the beads into a resting check mark, after which the loop stops.',
+    Component: MagneticBeads,
+    stores: [],
+    capabilities: ['Fixed-step physics', 'Bounded forces', 'Draggable magnet', 'Pause · speed'],
   },
 ];

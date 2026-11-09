@@ -7,7 +7,7 @@ import { RANGE_GAP, RANGE_MAX, RANGE_MIN, RANGE_STEP, rangeStore } from '../../.
 import { useStore } from '../../../state/persistence';
 import { useReducedMotion } from '../../../state/reducedMotion';
 import { hourToX, RANGE, RangeController, xToHour } from './rangeController';
-import { formatHour, formatSpan, moveBead, nearestBead, snapHour } from './rangeMath';
+import { formatHour, formatSpan, moveBead, moveWindow, nearestBead, snapHour } from './rangeMath';
 import type { BeadId } from './rangeMath';
 
 export function RangeBeads({ env }: { env: EnvironmentKind }) {
@@ -28,38 +28,90 @@ export function RangeBeads({ env }: { env: EnvironmentKind }) {
     if (next.start !== cur.start || next.end !== cur.end) rangeStore.set(next);
   };
 
+  // press state: where it started, what it moves, and whether it is still a tap
+  const press = useRef({ x: 0, hour: 0, startRange: rangeStore.get(), moved: false, pending: false, onTrackOnly: false });
+
   usePointerDrag(overlayRef, scaleRef, {
     onStart(p) {
       if (!ctrl.hitTrack(p.x, p.y)) return false;
-      const id = nearestBead(rangeStore.get(), xToHour(p.x));
-      ctrl.setDragging(id);
-      // grabbing a bead keeps the offset under the finger; a press on the track pulls it there
-      const dx = p.x - ctrl.beadX(id);
-      grab.current = Math.abs(dx) <= RANGE.bead + 6 ? dx : 0;
-      refs[id].current?.focus({ preventScroll: true });
-      ctrl.touch(0.4);
-      onDrag(id, p.x);
+      const cur = rangeStore.get();
+      const hour = xToHour(p.x);
+      press.current = { x: p.x, hour, startRange: cur, moved: false, pending: false, onTrackOnly: false };
+      if (ctrl.hitWindow(p.x, p.y)) {
+        // between the beads: drag the whole window, preserving its duration
+        ctrl.setDragging('window');
+        ctrl.touch(0.3);
+        return true;
+      }
+      const onStart = Math.abs(p.x - ctrl.beadX('start')) <= RANGE.bead + 6;
+      const onEnd = Math.abs(p.x - ctrl.beadX('end')) <= RANGE.bead + 6;
+      if (onStart && onEnd && ctrl.beadsTouching) {
+        // fused beads: the first movement decides which one is pulled out
+        press.current.pending = true;
+        return true;
+      }
+      if (!onStart && !onEnd) {
+        // a tap on the bare track moves the nearer bead there on release
+        press.current.onTrackOnly = true;
+        return true;
+      }
+      const id: BeadId = onStart && onEnd ? nearestBead(cur, hour) : onStart ? 'start' : 'end';
+      beginBead(id, p.x);
       return true;
     },
     onMove(p) {
-      if (ctrl.dragging) onDrag(ctrl.dragging, p.x);
+      const pr = press.current;
+      if (Math.abs(p.x - pr.x) > 3) pr.moved = true;
+      if (pr.pending && pr.moved) {
+        pr.pending = false;
+        beginBead(p.x < pr.x ? 'start' : 'end', pr.x);
+      }
+      if (pr.onTrackOnly && pr.moved) {
+        pr.onTrackOnly = false;
+        beginBead(nearestBead(rangeStore.get(), pr.hour), pr.x);
+      }
+      if (ctrl.dragging === 'window') {
+        const next = moveWindow(pr.startRange, snapHour(xToHour(p.x) - pr.hour));
+        ctrl.dragWindow(next.start, next.end);
+        const cur = rangeStore.get();
+        if (next.start !== cur.start || next.end !== cur.end) rangeStore.set(next);
+      } else if (ctrl.dragging) onDrag(ctrl.dragging, p.x);
     },
-    onEnd() {
+    onEnd(_p, cancelled) {
+      const pr = press.current;
+      if (cancelled && ctrl.dragging === 'window') rangeStore.set(pr.startRange);
+      if (!cancelled && pr.onTrackOnly && !pr.moved) {
+        const id = nearestBead(rangeStore.get(), pr.hour);
+        commit(id, pr.hour);
+        refs[id].current?.focus({ preventScroll: true });
+      }
       ctrl.setDragging(null);
       ctrl.setRange(rangeStore.get());
       ctrl.touch(0.3);
     },
   });
 
+  function beginBead(id: BeadId, x: number) {
+    ctrl.setDragging(id);
+    // grabbing a bead keeps the offset under the finger
+    const dx = x - ctrl.beadX(id);
+    grab.current = Math.abs(dx) <= RANGE.bead + 6 ? dx : 0;
+    refs[id].current?.focus({ preventScroll: true });
+    ctrl.touch(0.4);
+    onDrag(id, x);
+  }
+
   function onDrag(id: BeadId, x: number) {
-    // continuous under the hand, clamped against the other bead; the store keeps half hours
+    // continuous under the hand, clamped against the other bead; the store keeps quarter hours
     const hour = moveBead(rangeStore.get(), id, xToHour(x - grab.current))[id];
     ctrl.dragBead(id, hour);
     commit(id, hour);
   }
 
   const onKey = (id: BeadId) => (e: KeyboardEvent) => {
-    const steps: Record<string, number> = { ArrowRight: RANGE_STEP, ArrowUp: RANGE_STEP, ArrowLeft: -RANGE_STEP, ArrowDown: -RANGE_STEP, PageUp: 2, PageDown: -2 };
+    // fine: 15 minutes; coarse (Shift or Page keys): one hour
+    const k = e.shiftKey ? 4 : 1;
+    const steps: Record<string, number> = { ArrowRight: RANGE_STEP * k, ArrowUp: RANGE_STEP * k, ArrowLeft: -RANGE_STEP * k, ArrowDown: -RANGE_STEP * k, PageUp: 1, PageDown: -1 };
     const cur = rangeStore.get()[id];
     let next: number | null = null;
     if (e.key in steps) next = cur + steps[e.key];
@@ -103,7 +155,7 @@ export function RangeBeads({ env }: { env: EnvironmentKind }) {
         <span className="readout__big" data-testid="beads-readout">
           {formatHour(range.start)} – {formatHour(range.end)}
         </span>
-        <span className="readout__meta">{formatSpan(range)} window</span>
+        <span className="readout__meta" data-testid="beads-span">{formatSpan(range)} window</span>
       </div>
     </GlassStage>
   );

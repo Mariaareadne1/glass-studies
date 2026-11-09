@@ -2,6 +2,8 @@ import { RANGE_GAP, RANGE_MAX, RANGE_MIN, RANGE_STEP } from '../../../state/cont
 import type { RangeValue } from '../../../state/controls';
 
 export type BeadId = 'start' | 'end';
+/** What a drag is moving: one bead, or the whole window between them. */
+export type DragTarget = BeadId | 'window';
 
 export const snapHour = (h: number): number => Math.round(h / RANGE_STEP) * RANGE_STEP;
 
@@ -16,6 +18,16 @@ export function moveBead(range: RangeValue, which: BeadId, hour: number): RangeV
   }
   const end = Math.max(Math.min(hour, RANGE_MAX), range.start + RANGE_GAP);
   return { start: range.start, end };
+}
+
+/**
+ * Move the whole window by `delta` hours, preserving its duration exactly and
+ * clamping at the ends of the day (crossing policy: beads clamp, never swap).
+ */
+export function moveWindow(range: RangeValue, delta: number): RangeValue {
+  const span = range.end - range.start;
+  const start = Math.min(Math.max(range.start + delta, RANGE_MIN), RANGE_MAX - span);
+  return { start, end: start + span };
 }
 
 /** Which bead a press at `hour` should pick up: the nearer one; ties go toward the side pressed. */
@@ -33,6 +45,9 @@ export function formatHour(h: number): string {
 }
 
 export function formatSpan(r: RangeValue): string {
-  const d = r.end - r.start;
-  return Number.isInteger(d) ? `${d} h` : `${Math.floor(d)} h 30`;
+  const mins = Math.round((r.end - r.start) * 60);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }

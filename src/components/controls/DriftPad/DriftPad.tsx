@@ -3,98 +3,113 @@ import type { KeyboardEvent } from 'react';
 import { GlassStage } from '../../../glass/GlassStage';
 import type { EnvironmentKind } from '../../../glass/types';
 import { usePointerDrag } from '../../../motion/usePointerDrag';
-import { driftStore } from '../../../state/controls';
+import { driftModeStore, driftStore } from '../../../state/controls';
 import type { DriftValue } from '../../../state/controls';
 import { useStore } from '../../../state/persistence';
 import { useReducedMotion } from '../../../state/reducedMotion';
-import { DRIFT, DriftController, moodOf } from './driftController';
+import { DriftController } from './driftController';
+import { directionLabel, DRIFT, strengthPct } from './windMath';
 
-const same = (a: DriftValue, b: DriftValue) => Math.round(a.x) === Math.round(b.x) && Math.round(a.y) === Math.round(b.y);
-const round = (v: DriftValue): DriftValue => ({ x: Math.round(v.x), y: Math.round(v.y) });
+const round2 = (v: DriftValue): DriftValue => ({ x: Math.round(v.x * 100) / 100, y: Math.round(v.y * 100) / 100 });
+const same = (a: DriftValue, b: DriftValue) => Math.abs(a.x - b.x) < 0.005 && Math.abs(a.y - b.y) < 0.005;
+const fmt = (n: number) => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(2)}`;
 
 export function DriftPad({ env }: { env: EnvironmentKind }) {
   const value = useStore(driftStore);
+  const mode = useStore(driftModeStore);
   const [ctrl] = useState(() => new DriftController(driftStore.get()));
   const overlayRef = useRef<HTMLDivElement>(null);
-  const puckRef = useRef<HTMLDivElement>(null);
+  const padRef = useRef<HTMLDivElement>(null);
   const scaleRef = useRef(1);
   const grab = useRef({ dx: 0, dy: 0 });
   const reducedMotion = useReducedMotion();
 
   useEffect(() => ctrl.setReducedMotion(reducedMotion), [ctrl, reducedMotion]);
+  useEffect(() => ctrl.setMode(mode), [ctrl, mode]);
+  // external changes (keyboard, reset, spring return) glide the orb; a drag already matches
   useEffect(() => {
-    ctrl.setOnSettle((v) => driftStore.set(round(v)));
-  }, [ctrl]);
-  // external changes (keyboard, reset) glide the puck; its own throws already match
-  useEffect(() => {
-    if (!same(ctrl.value, value)) ctrl.glideTo(value);
+    if (!ctrl.dragging && !same(round2(ctrl.value), value)) ctrl.glideTo(value);
   }, [ctrl, value]);
 
   usePointerDrag(overlayRef, scaleRef, {
     onStart(p) {
       if (!ctrl.hitPad(p.x, p.y)) return false;
-      puckRef.current?.focus({ preventScroll: true });
-      // grabbing the puck keeps the offset; pressing the pad pulls the puck to the finger
+      padRef.current?.focus({ preventScroll: true });
+      // grabbing the orb keeps the offset; pressing the pad brings the orb to the finger
       const onPuck = ctrl.hitPuck(p.x, p.y);
-      grab.current = onPuck ? { dx: ctrl.body.x - p.x, dy: ctrl.body.y - p.y } : { dx: 0, dy: 0 };
+      grab.current = onPuck ? { dx: ctrl.x - p.x, dy: ctrl.y - p.y } : { dx: 0, dy: 0 };
       ctrl.beginDrag();
-      ctrl.dragTo(p.x + grab.current.dx, p.y + grab.current.dy, 0, 0);
+      ctrl.dragTo(p.x + grab.current.dx, p.y + grab.current.dy);
+      driftStore.set(round2(ctrl.value));
       return true;
     },
     onMove(p) {
-      ctrl.dragTo(p.x + grab.current.dx, p.y + grab.current.dy, p.vx, p.vy);
-      const v = round(ctrl.value);
-      if (!same(v, driftStore.get())) driftStore.set(v);
+      ctrl.dragTo(p.x + grab.current.dx, p.y + grab.current.dy);
+      driftStore.set(round2(ctrl.value));
     },
-    onEnd(p, cancelled) {
-      ctrl.release(cancelled ? 0 : p.vx, cancelled ? 0 : p.vy);
+    onEnd() {
+      driftStore.set(round2(ctrl.release()));
     },
   });
 
   const onKey = (e: KeyboardEvent) => {
-    const step = e.shiftKey ? 20 : 5;
+    // Shift gives fine steps
+    const step = e.shiftKey ? 0.01 : 0.05;
     const d: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
-    let next: DriftValue | null = null;
     const cur = driftStore.get();
+    let next: DriftValue | null = null;
     if (e.key in d) next = { x: cur.x + d[e.key][0], y: cur.y + d[e.key][1] };
-    else if (e.key === 'Home') next = { x: 50, y: 50 };
+    else if (e.key === 'Home') next = { x: 0, y: 0 };
     if (!next) return;
     e.preventDefault();
-    driftStore.set({ x: Math.min(100, Math.max(0, next.x)), y: Math.min(100, Math.max(0, next.y)) });
+    driftStore.set(next);
   };
 
-  const mood = moodOf(value);
-  const x = Math.round(value.x);
-  const y = Math.round(value.y);
+  const label = directionLabel(value);
+  const pct = strengthPct(value);
   return (
-    <GlassStage controller={ctrl} width={DRIFT.W} height={DRIFT.H} env={env} label="Drift two-axis mood pad" scaleRef={scaleRef} overlayRef={overlayRef}>
-      <div
-        ref={puckRef}
-        role="slider"
-        tabIndex={0}
-        aria-label="Mood: warmth and energy"
-        aria-roledescription="two-axis pad"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={x}
-        aria-valuetext={`Warmth ${x}, energy ${y}. ${mood.label}`}
-        aria-describedby="drift-hint"
-        data-testid="drift"
-        data-value={`${x},${y}`}
-        className="hit"
-        style={{ left: DRIFT.cx - DRIFT.padHalf, top: DRIFT.cy - DRIFT.padHalf, width: DRIFT.padHalf * 2, height: DRIFT.padHalf * 2, borderRadius: DRIFT.padRadius }}
-        onKeyDown={onKey}
-      />
-      <span id="drift-hint" className="sr-only">Left and right change warmth, up and down change energy. Home returns to the centre.</span>
-      <div className="readout readout--side" aria-hidden="true" style={{ left: 450, top: 140 }}>
-        <span className="readout__eyebrow">Mood</span>
-        <span className="readout__big readout__big--sm" data-testid="drift-mood">{mood.label}</span>
-        <span className="readout__meta">Warmth {x} · Energy {y}</span>
-      </div>
-      <p className="axis-label axis-label--x" aria-hidden="true" style={{ left: DRIFT.cx - DRIFT.padHalf, top: DRIFT.cy + DRIFT.padHalf + 12, width: DRIFT.padHalf * 2 }}>
-        <span>Cool</span>
-        <span>Warm</span>
-      </p>
-    </GlassStage>
+    <div className="instrument">
+      <GlassStage controller={ctrl} width={DRIFT.W} height={DRIFT.H} env={env} label="Drift wind pad" scaleRef={scaleRef} overlayRef={overlayRef}>
+        <div
+          ref={padRef}
+          role="slider"
+          tabIndex={0}
+          aria-label="Wind: direction and strength"
+          aria-roledescription="two-axis pad"
+          aria-valuemin={-1}
+          aria-valuemax={1}
+          aria-valuenow={value.x}
+          aria-valuetext={`Direction ${fmt(value.x)} (${label}), strength ${pct} percent`}
+          aria-describedby="drift-hint"
+          data-testid="drift"
+          data-value={`${value.x.toFixed(2)},${value.y.toFixed(2)}`}
+          className="hit"
+          style={{ left: DRIFT.cx - DRIFT.padHalf, top: DRIFT.cy - DRIFT.padHalf, width: DRIFT.padHalf * 2, height: DRIFT.padHalf * 2, borderRadius: DRIFT.padRadius, touchAction: 'none' }}
+          onKeyDown={onKey}
+          onDoubleClick={() => driftStore.set({ x: 0, y: 0 })}
+        />
+        <span id="drift-hint" className="sr-only">
+          Left and right set the wind direction, up and down its strength. Shift for fine steps, Home or double-click to centre.
+        </span>
+        <div className="readout readout--side" aria-hidden="true" style={{ left: 450, top: 132 }}>
+          <span className="readout__eyebrow">Wind</span>
+          <span className="readout__big readout__big--sm" data-testid="drift-label">{label}</span>
+          <span className="readout__meta">Strength {pct}%</span>
+          <span className="readout__meta readout__meta--fine">dir {fmt(value.x)} · str {fmt(value.y)}</span>
+        </div>
+        <p className="axis-label axis-label--x" aria-hidden="true" style={{ left: DRIFT.cx - DRIFT.padHalf, top: DRIFT.cy + DRIFT.padHalf + 12, width: DRIFT.padHalf * 2 }}>
+          <span>West</span>
+          <span>East</span>
+        </p>
+        <div className="chip-row chip-row--stage" role="radiogroup" aria-label="On release" style={{ left: 450, top: 290 }}>
+          <button type="button" role="radio" className="chip" aria-checked={mode === 'hold'} onClick={() => driftModeStore.set('hold')}>
+            Hold
+          </button>
+          <button type="button" role="radio" className="chip" aria-checked={mode === 'spring'} onClick={() => driftModeStore.set('spring')}>
+            Spring back
+          </button>
+        </div>
+      </GlassStage>
+    </div>
   );
 }

@@ -169,7 +169,7 @@ export class WebGLGlassRenderer implements GlassRenderer {
     gl.uniform1f(this.u('uUnionK'), Math.max(0, union));
     const n = Math.min(shapes.length, MAX_SHAPES_PER_LAYER);
     const a = (k: number) => new Float32Array(MAX_SHAPES_PER_LAYER * k);
-    const geom = a(4), geom2 = a(4), mat = a(4), tint = a(4), glow = a(4), mat2 = a(4), edge = a(4), edge2 = a(4);
+    const geom = a(4), geom2 = a(4), mat = a(4), tint = a(4), glow = a(4), mat2 = a(4), edge = a(4), edge2 = a(4), rad = a(4).fill(-1);
     for (let i = 0; i < n; i++) {
       const s = shapes[i];
       const m = s.material;
@@ -180,6 +180,8 @@ export class WebGLGlassRenderer implements GlassRenderer {
       tint.set(m.tint, o);
       glow.set(m.glow, o);
       mat2.set([m.shadow, m.exposure, m.milk, m.halo], o);
+      // screen [tr, br, bl, tl] → shader local y-up order (+x+y, +x−y, −x−y, −x+y) is the same sequence
+      if (s.radii) rad.set(s.radii, o);
       if (s.edge) {
         edge.set([s.edge.head, s.edge.intensity, s.edge.direction, s.edge.width], o);
         edge2.set([s.edge.color[0], s.edge.color[1], s.edge.color[2], s.edge.trail], o);
@@ -194,6 +196,7 @@ export class WebGLGlassRenderer implements GlassRenderer {
     gl.uniform4fv(this.u('uMat2'), mat2);
     gl.uniform4fv(this.u('uEdge'), edge);
     gl.uniform4fv(this.u('uEdge2'), edge2);
+    gl.uniform4fv(this.u('uRad'), rad);
   }
 
   private setShadows(shapes: GlassShape[] | undefined, union = 0): void {

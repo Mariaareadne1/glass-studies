@@ -31,16 +31,87 @@ export const IRIS = {
 const LAST = IRIS_STOPS.length - 1;
 const DEG = Math.PI / 180;
 
-/** Aperture radius for a (continuous) stop index; 0 is wide open. */
-export function apertureRadius(stop: number): number {
-  const k = clamp(stop / LAST);
-  // f-numbers grow geometrically: radius shrinks quickly at first, then slowly
-  return lerp(IRIS.apertureMin, IRIS.apertureMax, Math.pow(1 - k, 1.35));
+/** f-number for a continuous stop index, interpolated geometrically between marked stops. */
+export function fNumber(stop: number): number {
+  const s = clamp(stop, 0, LAST);
+  const i = Math.min(LAST - 1, Math.floor(s));
+  const t = s - i;
+  return IRIS_STOPS[i] * Math.pow(IRIS_STOPS[i + 1] / IRIS_STOPS[i], t);
 }
 
-/** Share of light admitted relative to wide open (area ratio), 0..1. */
+/**
+ * Aperture radius for a (continuous) stop index; 0 is wide open. The pupil
+ * diameter of a lens is focal length / N, so the radius follows 1/N. It is
+ * remapped so the narrowest stop keeps a visible opening (no zero-width
+ * artefacts) while staying strictly monotonic.
+ */
+export function apertureRadius(stop: number): number {
+  const n0 = IRIS_STOPS[0];
+  const nMax = IRIS_STOPS[LAST];
+  const k = (n0 / fNumber(stop) - n0 / nMax) / (1 - n0 / nMax);
+  return lerp(IRIS.apertureMin, IRIS.apertureMax, k);
+}
+
+/**
+ * Theoretical light through the aperture relative to f/1.8: (1.8 / N)². An
+ * illustration of the inverse-square law, not an exposure measurement.
+ */
 export function lightAdmitted(stop: number): number {
-  return (apertureRadius(stop) / IRIS.apertureMax) ** 2;
+  return (IRIS_STOPS[0] / fNumber(stop)) ** 2;
+}
+
+/** Blade twist for an aperture radius and ring rotation (radians); shared by drawing and tests. */
+export function bladeTwist(r: number, rot: number): number {
+  return rot * 0.6 + (1 - r / IRIS.apertureMax) * 0.9;
+}
+
+/**
+ * The aperture: a regular polygon whose vertices are the blade tips. Every
+ * blade is cut from one disc with this polygon removed (even-odd fill), so the
+ * blades always meet without gaps, whatever the stop.
+ */
+export function aperturePolygon(stop: number, rot = 0): Array<[number, number]> {
+  const r = apertureRadius(stop);
+  const twist = bladeTwist(r, rot);
+  return Array.from({ length: IRIS.bladeCount }, (_, k) => {
+    const a = twist + (k * Math.PI * 2) / IRIS.bladeCount;
+    return [IRIS.cx + Math.cos(a) * r, IRIS.cy + Math.sin(a) * r];
+  });
+}
+
+/** Shoelace area of a polygon. */
+export function polygonArea(pts: ReadonlyArray<readonly [number, number]>): number {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[(i + 1) % pts.length];
+    a += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(a) / 2;
+}
+
+/** Radius of the printed f-number scale. */
+export const SCALE_RADIUS = IRIS.ring - 34;
+
+/**
+ * Which printed stop (if any) is under a point, given the ring's current
+ * displayed stop. Used for "click a number to select it".
+ */
+export function tickAt(x: number, y: number, displayed: number): number | null {
+  const d = Math.hypot(x - IRIS.cx, y - IRIS.cy);
+  if (Math.abs(d - SCALE_RADIUS) > 18) return null;
+  const a = Math.atan2(y - IRIS.cy, x - IRIS.cx);
+  let best: number | null = null;
+  let bestD = Infinity;
+  for (let i = 0; i <= LAST; i++) {
+    const ai = -Math.PI / 2 + (i - displayed) * IRIS.stepDeg * DEG;
+    const diff = Math.abs(Math.atan2(Math.sin(a - ai), Math.cos(a - ai)));
+    if (diff < bestD) {
+      bestD = diff;
+      best = i;
+    }
+  }
+  return bestD <= (IRIS.stepDeg / 2) * DEG ? best : null;
 }
 
 /** Turning the ring clockwise by `deltaDeg` moves the lower f-numbers up to the index (wider). */
@@ -205,7 +276,7 @@ export class IrisController implements StageController {
   /** Seven blades: a disc with the aperture polygon cut out, seams spiralling outward. */
   private drawBlades(g: CanvasRenderingContext2D, r: number, rot: number, dark: boolean): void {
     const { cx, cy, blades: R, bladeCount: n } = IRIS;
-    const twist = rot * 0.6 + (1 - r / IRIS.apertureMax) * 0.9;
+    const twist = bladeTwist(r, rot);
     const pts = Array.from({ length: n }, (_, k) => {
       const a = twist + (k * Math.PI * 2) / n;
       return [cx + Math.cos(a) * r, cy + Math.sin(a) * r, a] as const;
@@ -255,7 +326,7 @@ export class IrisController implements StageController {
   /** The f-number scale printed on the turning ring; the current stop sits under the index. */
   private drawScale(g: CanvasRenderingContext2D, s: number, dark: boolean, cssScale: number): void {
     const { cx, cy } = IRIS;
-    const rText = IRIS.ring - 34;
+    const rText = SCALE_RADIUS;
     g.save();
     g.font = `500 ${Math.max(12, 9.5 / cssScale).toFixed(1)}px "Geist Mono Variable", ui-monospace, monospace`;
     g.textAlign = 'center';

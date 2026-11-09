@@ -1217,3 +1217,67 @@ button {
   line-height: 1.55;
   color: var(--ink-2);
 }
+
+.readout__meta--fine {
+  opacity: 0.7;
+  font-size: max(11px, calc(9px / var(--stage-scale, 1)));
+}
+
+.chip-row--stage {
+  position: absolute;
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--plinth) 60%, transparent);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  font-size: max(13px, calc(11px / var(--stage-scale, 1)));
+}
+
+/* ---------------------------------------------------------------- Glass Scrubber */
+.scrubber-bar {
+  position: absolute;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  pointer-events: auto;
+}
+
+.scrubber-bar .chip {
+  background: var(--line);
+  min-height: 28px;
+  padding: 0.2rem 0.65rem;
+  font-size: max(12px, calc(10.5px / var(--stage-scale, 1)));
+  white-space: nowrap;
+}
+
+.scrubber-bar .chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.scrubber-time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+  margin: 0 4px;
+}
+
+.scrubber-status {
+  position: absolute;
+  font-size: max(12px, calc(10px / var(--stage-scale, 1)));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scrubber-decoders {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  left: 0;
+  top: 0;
+}

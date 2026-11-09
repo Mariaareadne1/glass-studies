@@ -18,7 +18,7 @@ void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
 export const FRAG = /* glsl */ `#version 300 es
 precision highp float;
 
-#define MAXS 4
+#define MAXS 6
 const float PI = 3.14159265;
 const float HALF_PI = 1.57079633;
 
@@ -48,6 +48,7 @@ uniform vec4 uMat2[MAXS];   // shadow, exposure, milk (rim), halo (outer glow)
 uniform vec4 uEdge[MAXS];   // head, intensity, direction, width
 uniform vec4 uEdge2[MAXS];  // rgb, trail
 uniform float uUnionK;      // > 0: shapes fuse into one surface with this fillet width
+uniform vec4 uRad[MAXS];    // per-corner radii (local y-up: +x+y, +x-y, -x-y, -x+y); x < 0 = uniform radius
 
 // shadows of the next layer
 uniform int uShadowCount;
@@ -220,6 +221,15 @@ Mat mixMat(Mat a, Mat b, float k) {
              mix(a.bevel, b.bevel, k), mix(a.thick, b.thick, k), a.e, a.e2);
 }
 
+// rounded box with an independent radius per corner (Inigo Quilez's formulation)
+float sdRR4(vec2 p, vec2 h, vec4 rad) {
+  vec2 rr = p.x > 0.0 ? rad.xy : rad.wz;
+  float r = p.y > 0.0 ? rr.x : rr.y;
+  r = min(r, min(h.x, h.y));
+  vec2 q = abs(p) - h + r;
+  return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+}
+
 // signed distance of shape i at design point d; also returns its local frame
 float shapeSd(int i, vec2 d, out vec2 lp, out vec2 h, out float r) {
   vec4 g = uGeom[i];
@@ -227,6 +237,7 @@ float shapeSd(int i, vec2 d, out vec2 lp, out vec2 h, out float r) {
   r = min(uGeom2[i].x, min(h.x, h.y));
   lp = vec2(d.x - g.x, -(d.y - g.y));   // local, y up
   lp.x -= uGeom2[i].y * lp.y;          // lean
+  if (uRad[i].x >= 0.0) return sdRR4(lp, h, uRad[i]);
   return sdRR(lp, h, r);
 }
 

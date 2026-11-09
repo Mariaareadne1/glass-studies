@@ -10,7 +10,7 @@ import { RANGE_MAX, RANGE_MIN } from '../../../state/controls';
 import type { RangeValue } from '../../../state/controls';
 import { DOT_GAP, glassInk, ledGlow } from '../shared/ink';
 import { clamp, mixRGB, rgba, smoothstep } from '../shared/math';
-import type { BeadId } from './rangeMath';
+import type { BeadId, DragTarget } from './rangeMath';
 
 export const RANGE = {
   W: 640,
@@ -50,10 +50,15 @@ export class RangeController implements StageController {
   private edge = new EdgeLight(0.25, 2);
   private invalidate: () => void = () => undefined;
   private reducedMotion = false;
-  dragging: BeadId | null = null;
+  dragging: DragTarget | null = null;
 
-  setDragging(id: BeadId | null): void {
+  setDragging(id: DragTarget | null): void {
     this.dragging = id;
+  }
+
+  /** True while the two beads overlap enough that a press could mean either. */
+  get beadsTouching(): boolean {
+    return this.end.x - this.start.x < RANGE.bead * 1.2;
   }
 
   constructor(r: RangeValue) {
@@ -72,7 +77,7 @@ export class RangeController implements StageController {
 
   setRange(r: RangeValue): void {
     for (const id of ['start', 'end'] as const) {
-      if (this.dragging === id) continue;
+      if (this.dragging === id || this.dragging === 'window') continue;
       const s = this[id];
       if (this.reducedMotion) s.snap(hourToX(r[id]));
       else s.set(hourToX(r[id]));
@@ -101,6 +106,23 @@ export class RangeController implements StageController {
 
   private lastDrag = 0;
 
+  /** Window drag: both beads move together, exactly under the hand. */
+  dragWindow(start: number, end: number): void {
+    const now = performance.now();
+    const dt = Math.max((now - this.lastDrag) / 1000, 1 / 120);
+    this.lastDrag = now;
+    const xs = hourToX(start);
+    const xe = hourToX(end);
+    this.start.snap(xs, clamp((xs - this.start.x) / dt, -3000, 3000));
+    this.end.snap(xe, clamp((xe - this.end.x) / dt, -3000, 3000));
+    this.invalidate();
+  }
+
+  /** Is (x, y) on the selected interval between the beads (not on a bead)? */
+  hitWindow(x: number, y: number): boolean {
+    return Math.abs(y - RANGE.cy) <= RANGE.bead + 8 && x > this.start.x + RANGE.bead && x < this.end.x - RANGE.bead;
+  }
+
   touch(strength: number): void {
     this.edge.impulse(strength);
     this.invalidate();
@@ -110,11 +132,12 @@ export class RangeController implements StageController {
     let moving = false;
     for (const id of ['start', 'end'] as const) {
       const s = this[id];
-      if (this.dragging !== id) s.step(dt);
+      const held = this.dragging === id || this.dragging === 'window';
+      if (!held) s.step(dt);
       else s.v *= Math.exp(-dt * 12); // a held bead's speed fades when the hand pauses
       this.shape[id] = this.reducedMotion ? { along: 1, across: 1, lean: 0 } : this.deform[id].update(s.v, dt, 0.9);
       const settled = s.isSettled(0.05);
-      if (settled && this.dragging !== id) s.settle();
+      if (settled && !held) s.settle();
       if (!settled || this.deform[id].active) moving = true;
     }
     const v = Math.max(Math.abs(this.start.v), Math.abs(this.end.v));
@@ -176,19 +199,26 @@ export class RangeController implements StageController {
       return { cx: x, cy, hw: R * d.along, hh: R * d.across, radius: R * Math.min(d.along, d.across), skew: 0, material: beadMat(id === 'start' ? DAWN : DUSK) };
     };
     const shapes: GlassShape[] = [beadShape('start', xs), beadShape('end', xe)];
-    if (merge > 0.01) {
-      // the liquid bridge: a thin slab spanning the gap, thickening as the beads close in
-      const hh = 3 + 9 * merge;
+    if (merge > 0.01 && gap > R * 0.5) {
+      // the liquid bridge: a thin neck spanning the gap, fused with both beads into one surface
+      const hh = 2.5 + 7 * merge;
       shapes.unshift({ cx: (xs + xe) / 2, cy, hw: Math.max(hh, gap / 2), hh, radius: hh, skew: 0, material: bridgeMat });
     }
-    const which = this.dragging ?? (Math.abs(this.end.v) > Math.abs(this.start.v) ? 'end' : 'start');
+    const d = this.dragging === 'window' ? null : this.dragging;
+    const which = d ?? (Math.abs(this.end.v) > Math.abs(this.start.v) ? 'end' : 'start');
     shapes[shapes.length - (which === 'end' ? 1 : 2)].edge = this.edge.params(mixRGB(which === 'end' ? DUSK : DAWN, [1, 1, 1], 0.35));
 
     const icons = ctx.paint('range-icons', (g) => {
       const ink = glassInk(dark);
       const opts = { gap: DOT_GAP, ink, glow: 2, glowAlpha: ledGlow(dark, 0.4) };
-      drawPixels(g, ledPixels('sun').map((p) => ({ ...p, alpha: 1, size: 1 })), xs, cy, 2.1, ctx.pxPerUnit, { ...opts, scaleX: this.shape.start.along, scaleY: this.shape.start.across });
-      drawPixels(g, ledPixels('moon').map((p) => ({ ...p, alpha: 1, size: 1 })), xe, cy, 2.1, ctx.pxPerUnit, { ...opts, scaleX: this.shape.end.along, scaleY: this.shape.end.across });
+      // when the beads fuse, sun and moon hand over to one quiet mark instead of overlapping
+      const apart = clamp((gap - R * 1.1) / (R * 0.9));
+      const px = (name: 'sun' | 'moon' | 'dots', a: number) => ledPixels(name).map((p) => ({ ...p, alpha: a, size: 1 }));
+      if (apart > 0.01) {
+        drawPixels(g, px('sun', apart), xs, cy, 2.1, ctx.pxPerUnit, { ...opts, scaleX: this.shape.start.along, scaleY: this.shape.start.across });
+        drawPixels(g, px('moon', apart), xe, cy, 2.1, ctx.pxPerUnit, { ...opts, scaleX: this.shape.end.along, scaleY: this.shape.end.across });
+      }
+      if (apart < 0.99) drawPixels(g, px('dots', 1 - apart), (xs + xe) / 2, cy, 2.1, ctx.pxPerUnit, opts);
     });
 
     return {
@@ -204,7 +234,7 @@ export class RangeController implements StageController {
       under,
       layers: [
         { shapes: [{ cx, cy, hw: trackHW, hh: trackHH, radius: trackRadius, skew: 0, material: track }] },
-        { shapes, above: icons },
+        { shapes, above: icons, union: 16 },
       ],
     };
   }

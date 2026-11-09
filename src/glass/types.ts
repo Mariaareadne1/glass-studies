@@ -78,6 +78,11 @@ export interface GlassShape {
   skew: number;
   material: MaterialParams;
   edge?: EdgeLightParams;
+  /**
+   * Optional per-corner radii [top-right, bottom-right, bottom-left, top-left]
+   * (screen orientation). `radius` still drives perimeter-locked effects.
+   */
+  radii?: readonly [number, number, number, number];
 }
 
 /** A 2D canvas composited into the optical stack. Bump `version` when redrawn. */
@@ -116,4 +121,4 @@ export interface GlassRenderer {
 }
 
 export const MAX_LAYERS = 3;
-export const MAX_SHAPES_PER_LAYER = 4;
+export const MAX_SHAPES_PER_LAYER = 6;

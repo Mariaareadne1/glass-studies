@@ -11,6 +11,7 @@ import { DropletPress } from '../components/controls/DropletPress/DropletPress';
 import { DriftPad } from '../components/controls/DriftPad/DriftPad';
 import { RangeBeads } from '../components/controls/RangeBeads/RangeBeads';
 import { LiquidTabs } from '../components/controls/LiquidTabs/LiquidTabs';
+import { GlassScrubber } from '../components/controls/GlassScrubber/GlassScrubber';
 import { atmosphereStore, driftStore, dropletStore, forecastDayStore, forecastDetailStore, haloStore, irisStore, modeStore, rangeStore, solarStore, tabsStore, thermalStore } from '../state/controls';
 
 export type StudyGroup = 'originals' | 'controls' | 'loaders' | 'optics';
@@ -163,5 +164,18 @@ export const STUDIES: StudyDef[] = [
       'Beads never cross and always keep at least two hours apart, where they just touch. Each bead sits exactly under the hand and stretches with its speed; keyboard steps glide on a stiff spring. The bridge is a third glass slab whose thickness follows the distance between the beads.',
     Component: RangeBeads,
     stores: [rangeStore],
+  },
+  {
+    id: 'scrubber',
+    group: 'controls',
+    num: 'C6',
+    title: 'Glass Scrubber',
+    description: 'A real video timeline. A glass lens rides a strip of frames sampled from the video, magnifying them; dragging seeks the actual media.',
+    hint: 'Drag or hover the strip · ← → seek 5 s · open your own video',
+    detail:
+      'The main frame and every thumbnail are decoded from the video itself and drawn beneath the glass, so the lens refracts real frames. Hovering samples the frame at that time on a separate decoder; dragging maps the strip onto currentTime through a seek queue that coalesces requests, so fast scrubs never race the decoder. Your own files stay on this device (an object URL, revoked when replaced). The sample clip is rendered from this collection’s loaders.',
+    Component: GlassScrubber,
+    stores: [],
+    capabilities: ['Real media', 'Seek queue', 'Local files only', 'Keyboard ±5 s'],
   },
 ];

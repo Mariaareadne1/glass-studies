@@ -28,7 +28,7 @@ export const forecastDetailStore = createStore<boolean>('forecast-detail', true,
 
 // ---- V3 instruments
 /** Iris Dial: index into IRIS_STOPS (0 = widest aperture). */
-export const IRIS_STOPS = [1.4, 2, 2.8, 4, 5.6, 8, 11, 16] as const;
+export const IRIS_STOPS = [1.8, 2, 2.8, 4, 5.6, 8, 11, 16] as const;
 export const irisStore = createStore<number>('iris', 2, (raw) => {
   const v = clampNumber(0, IRIS_STOPS.length - 1)(raw);
   return v === null ? null : Math.round(v);
@@ -40,33 +40,39 @@ export const dropletStore = createStore<number>('droplet', 0, (raw) => {
 });
 /** Droplet Press: the setting a completed hold toggles (a deliberate, two-way action). */
 export const quietStore = createStore<boolean>('droplet-quiet', false, (raw) => (typeof raw === 'boolean' ? raw : null));
-/** Drift Pad: warmth (x) and energy (y), 0..100. */
+/** Drift Pad: wind direction (x, west −1 … east +1) and strength (y, calm −1 … strong +1). */
 export interface DriftValue {
   x: number;
   y: number;
 }
-export const driftStore = createStore<DriftValue>('drift', { x: 50, y: 50 }, (raw) => {
+const unit = clampNumber(-1, 1);
+export const driftStore = createStore<DriftValue>('wind', { x: 0, y: 0 }, (raw) => {
   if (typeof raw !== 'object' || raw === null) return null;
   const r = raw as Record<string, unknown>;
-  const x = clampNumber(0, 100)(r.x);
-  const y = clampNumber(0, 100)(r.y);
-  return x === null || y === null ? null : { x, y };
+  const x = unit(r.x);
+  const y = unit(r.y);
+  if (x === null || y === null) return null;
+  // two decimals: the value the readout shows is the value that is stored
+  return { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 };
 });
-/** Dual Range Beads: an active-hours window in half-hour steps. */
+/** Drift Pad release behaviour. */
+export type DriftMode = 'spring' | 'hold';
+export const driftModeStore = createStore<DriftMode>('wind-mode', 'hold', (raw) => (raw === 'spring' || raw === 'hold' ? raw : null));
+
 export const RANGE_MIN = 0;
 export const RANGE_MAX = 24;
-export const RANGE_STEP = 0.5;
-export const RANGE_GAP = 2;
+export const RANGE_STEP = 0.25;
+export const RANGE_GAP = 0.25;
 export interface RangeValue {
   start: number;
   end: number;
 }
-export const rangeStore = createStore<RangeValue>('range', { start: 8, end: 18 }, (raw) => {
+export const rangeStore = createStore<RangeValue>('range-v3', { start: 9, end: 17 }, (raw) => {
   if (typeof raw !== 'object' || raw === null) return null;
   const r = raw as Record<string, unknown>;
   const a = clampNumber(RANGE_MIN, RANGE_MAX)(r.start);
   const b = clampNumber(RANGE_MIN, RANGE_MAX)(r.end);
-  if (a === null || b === null || b - a < RANGE_GAP) return null;
+  if (a === null || b === null || b - a < RANGE_GAP - 1e-9) return null;
   const snap = (v: number) => Math.round(v / RANGE_STEP) * RANGE_STEP;
   return { start: snap(a), end: snap(b) };
 });
@@ -78,7 +84,7 @@ export const tabsStore = createStore<number>('tabs', 0, (raw) => {
   return v === null ? null : Math.round(v);
 });
 
-export const ALL_STORES = [tabsStore, quietStore, solarStore, atmosphereStore, haloStore, thermalStore, modeStore, forecastDayStore, forecastDetailStore, irisStore, dropletStore, driftStore, rangeStore];
+export const ALL_STORES = [tabsStore, quietStore, driftModeStore, solarStore, atmosphereStore, haloStore, thermalStore, modeStore, forecastDayStore, forecastDetailStore, irisStore, dropletStore, driftStore, rangeStore];
 
 export function resetAll(): void {
   ALL_STORES.forEach((s) => s.reset());

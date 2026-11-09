@@ -2,16 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { GlassStage } from '../../../glass/GlassStage';
 import type { EnvironmentKind } from '../../../glass/types';
+import { RotaryTracker } from '../../../motion/rotary';
 import { usePointerDrag } from '../../../motion/usePointerDrag';
 import { IRIS_STOPS, irisStore } from '../../../state/controls';
 import { useStore } from '../../../state/persistence';
 import { useReducedMotion } from '../../../state/reducedMotion';
-import { detentAfterRelease, formatStop, IRIS, IrisController, lightAdmitted, stopFromRotation } from './irisController';
+import { detentAfterRelease, formatStop, IRIS, IrisController, lightAdmitted, stopFromRotation, tickAt } from './irisController';
 
 const LAST = IRIS_STOPS.length - 1;
-const angleOf = (x: number, y: number) => (Math.atan2(y - IRIS.cy, x - IRIS.cx) * 180) / Math.PI;
-/** Shortest signed difference between two angles in degrees. */
-const wrapDeg = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180;
 
 export function IrisDial({ env }: { env: EnvironmentKind }) {
   const stop = useStore(irisStore);
@@ -19,7 +17,8 @@ export function IrisDial({ env }: { env: EnvironmentKind }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
   const scaleRef = useRef(1);
-  const turn = useRef({ angle: 0, total: 0, from: 0, t: 0, vel: 0 });
+  const rotary = useRef(new RotaryTracker(IRIS.cx, IRIS.cy));
+  const turn = useRef({ from: 0, tick: null as number | null });
   const reducedMotion = useReducedMotion();
 
   useEffect(() => ctrl.setReducedMotion(reducedMotion), [ctrl, reducedMotion]);
@@ -30,28 +29,24 @@ export function IrisDial({ env }: { env: EnvironmentKind }) {
       if (!ctrl.hitDial(p.x, p.y)) return false;
       ctrl.setDragging(true);
       sliderRef.current?.focus({ preventScroll: true });
-      turn.current = { angle: angleOf(p.x, p.y), total: 0, from: ctrl.display.x, t: e.timeStamp, vel: 0 };
+      rotary.current.begin(p.x, p.y, e.timeStamp);
+      turn.current = { from: ctrl.display.x, tick: tickAt(p.x, p.y, ctrl.display.x) };
       ctrl.touch(0.4);
       return true;
     },
     onMove(p, e) {
-      const tr = turn.current;
-      // the angle is unstable at the very centre
-      if (Math.hypot(p.x - IRIS.cx, p.y - IRIS.cy) < 24) return;
-      const a = angleOf(p.x, p.y);
-      const d = wrapDeg(a - tr.angle);
-      const dt = Math.max((e.timeStamp - tr.t) / 1000, 1 / 240);
-      tr.vel = tr.vel * 0.6 + (d / dt) * 0.4;
-      tr.angle = a;
-      tr.t = e.timeStamp;
-      tr.total += d;
-      const raw = stopFromRotation(tr.from, tr.total);
+      const total = rotary.current.move(p.x, p.y, e.timeStamp);
+      const raw = stopFromRotation(turn.current.from, total);
       ctrl.turnTo(raw);
       irisStore.set(Math.round(Math.min(LAST, Math.max(0, raw))));
     },
     onEnd(_p, cancelled) {
       ctrl.setDragging(false);
-      const target = cancelled ? irisStore.get() : detentAfterRelease(ctrl.display.x, turn.current.vel);
+      const tr = turn.current;
+      // a click (no real turn) on a printed number selects that stop
+      const rt = rotary.current;
+      const clicked = !cancelled && Math.abs(rt.total) < 2 && tr.tick !== null ? tr.tick : null;
+      const target = cancelled ? irisStore.get() : clicked ?? detentAfterRelease(ctrl.display.x, rt.velocity);
       irisStore.set(target);
       ctrl.setStop(target);
       ctrl.touch(0.3);
@@ -96,7 +91,7 @@ export function IrisDial({ env }: { env: EnvironmentKind }) {
         aria-valuemin={0}
         aria-valuemax={LAST}
         aria-valuenow={stop}
-        aria-valuetext={`${formatStop(stop)}, ${light} percent of the light`}
+        aria-valuetext={`${formatStop(stop)}, about ${light} percent of the light at f/1.8`}
         data-testid="iris"
         className="hit"
         style={{ left: IRIS.cx - IRIS.ring, top: IRIS.cy - IRIS.ring, width: IRIS.ring * 2, height: IRIS.ring * 2, borderRadius: '50%' }}
@@ -105,7 +100,8 @@ export function IrisDial({ env }: { env: EnvironmentKind }) {
       <div className="readout readout--side" aria-hidden="true" style={{ left: 450, top: 150 }}>
         <span className="readout__eyebrow">Aperture</span>
         <span className="readout__big" data-testid="iris-readout">{formatStop(stop)}</span>
-        <span className="readout__meta">{light}% of the light</span>
+        <span className="readout__meta">≈ {light}% of f/1.8 light</span>
+        <span className="readout__meta readout__meta--fine">Area ∝ 1/N² · not a meter</span>
       </div>
     </GlassStage>
   );

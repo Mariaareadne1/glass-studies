@@ -5,9 +5,9 @@ import type { GlassScene } from '../glass/types';
 import { apertureRadius, detentAfterRelease, formatStop, IrisController, lightAdmitted, stopFromRotation } from '../components/controls/IrisDial/irisController';
 import { HoldGesture } from '../components/controls/DropletPress/holdGesture';
 import { DROP, DropletController } from '../components/controls/DropletPress/dropletController';
-import { DriftBody, DRIFT_MAX_SPEED } from '../components/controls/DriftPad/driftBody';
-import { DRIFT_BOUNDS, DriftController, moodOf, toPosition, toValue } from '../components/controls/DriftPad/driftController';
-import { formatHour, formatSpan, moveBead, nearestBead, snapHour } from '../components/controls/RangeBeads/rangeMath';
+import { DriftController } from '../components/controls/DriftPad/driftController';
+import { DRIFT, directionLabel, strengthPct, toPosition, toValue, TRAVEL, windGlyph } from '../components/controls/DriftPad/windMath';
+import { formatHour, formatSpan, moveBead, moveWindow, nearestBead, snapHour } from '../components/controls/RangeBeads/rangeMath';
 import { hourToX, RANGE, RangeController, xToHour } from '../components/controls/RangeBeads/rangeController';
 import { IRIS_STOPS, RANGE_GAP, rangeStore } from '../state/controls';
 
@@ -187,61 +187,60 @@ describe('Droplet Press', () => {
 });
 
 describe('Drift Pad', () => {
-  const bounds = { minX: 0, maxX: 100, minY: 0, maxY: 100 };
-
-  test('a throw slows with friction and comes to rest inside the pad', () => {
-    const b = new DriftBody(50, 50, bounds);
-    b.launch(900, -400);
-    let t = 0;
-    while (b.moving && t < 10) {
-      b.step(1 / 60);
-      t += 1 / 60;
-      expect(b.x).toBeGreaterThanOrEqual(0);
-      expect(b.x).toBeLessThanOrEqual(100);
-      expect(b.y).toBeGreaterThanOrEqual(0);
-      expect(b.y).toBeLessThanOrEqual(100);
-    }
-    expect(b.moving).toBe(false);
-    expect(t).toBeLessThan(4);
-  });
-
-  test('walls bounce the puck back with reduced speed and report the impact', () => {
-    const b = new DriftBody(98, 50, bounds);
-    b.launch(600, 0);
-    const impact = b.step(1 / 30);
-    expect(impact).toBeGreaterThan(500);
-    expect(b.vx).toBeLessThan(0);
-    expect(Math.abs(b.vx)).toBeLessThan(600 * 0.5);
-  });
-
-  test('throws are capped to a sane speed', () => {
-    const b = new DriftBody(50, 50, bounds);
-    b.launch(1e5, 1e5);
-    expect(Math.hypot(b.vx, b.vy)).toBeCloseTo(DRIFT_MAX_SPEED, 3);
-  });
-
-  test('position and value round-trip; the centre reads as balanced', () => {
-    for (const v of [{ x: 0, y: 0 }, { x: 100, y: 100 }, { x: 25, y: 80 }]) {
+  test('corners and centre map to exact normalised values, and round-trip', () => {
+    expect(toValue(DRIFT.cx, DRIFT.cy)).toEqual({ x: 0, y: 0 });
+    expect(toValue(DRIFT.cx + TRAVEL, DRIFT.cy - TRAVEL)).toEqual({ x: 1, y: 1 });
+    expect(toValue(DRIFT.cx - TRAVEL, DRIFT.cy + TRAVEL)).toEqual({ x: -1, y: -1 });
+    // beyond the pad clamps to the edge
+    expect(toValue(DRIFT.cx + 999, DRIFT.cy + 999)).toEqual({ x: 1, y: -1 });
+    for (const v of [{ x: 0.25, y: -0.6 }, { x: -1, y: 1 }]) {
       const p = toPosition(v);
       const back = toValue(p.x, p.y);
-      expect(back.x).toBeCloseTo(v.x, 6);
-      expect(back.y).toBeCloseTo(v.y, 6);
+      expect(back.x).toBeCloseTo(v.x, 9);
+      expect(back.y).toBeCloseTo(v.y, 9);
     }
-    expect(toValue(DRIFT_BOUNDS.maxX, DRIFT_BOUNDS.minY)).toEqual({ x: 100, y: 100 });
-    expect(moodOf({ x: 50, y: 50 }).label).toBe('Balanced');
-    expect(moodOf({ x: 90, y: 90 }).label).toBe('Lively · Warm');
-    expect(moodOf({ x: 10, y: 10 }).label).toBe('Calm · Cool');
+    expect(strengthPct({ x: 0, y: -1 })).toBe(0);
+    expect(strengthPct({ x: 0, y: 1 })).toBe(100);
+    expect(directionLabel({ x: 0.02, y: 0 })).toBe('Still');
+    expect(directionLabel({ x: -0.9, y: 0 })).toBe('West');
   });
 
-  test('a release settles, reports the value once and goes idle', () => {
-    const c = new DriftController({ x: 50, y: 50 });
-    const settled: unknown[] = [];
-    c.onSettle = (v) => settled.push(v);
+  test('the wind glyph points downwind, lengthens with strength and stays on the grid', () => {
+    const calmEast = windGlyph({ x: 0.8, y: -0.8 });
+    const strongEast = windGlyph({ x: 0.8, y: 0.9 });
+    const strongWest = windGlyph({ x: -0.8, y: 0.9 });
+    expect(strongEast.length).toBeGreaterThan(calmEast.length);
+    const meanX = (px: { x: number }[]) => px.reduce((a, p) => a + p.x, 0) / px.length;
+    expect(meanX(strongEast)).toBeLessThan(meanX(strongWest) + 12);
+    for (const g of [calmEast, strongEast, strongWest, windGlyph({ x: 0, y: 0 })]) {
+      for (const p of g) {
+        expect(p.x).toBeGreaterThanOrEqual(0);
+        expect(p.x).toBeLessThan(12);
+        expect(p.y).toBeGreaterThanOrEqual(0);
+        expect(p.y).toBeLessThan(12);
+      }
+    }
+  });
+
+  test('hold mode keeps the exact value and does not drift; spring mode returns the state and orb to zero', () => {
+    const c = new DriftController({ x: 0, y: 0 });
+    c.setMode('hold');
     c.beginDrag();
-    c.dragTo(DRIFT_BOUNDS.minX + 10, DRIFT_BOUNDS.minY + 10, 0, 0);
-    c.release(-1500, -300);
-    expect(run(c, 6)).toBe(false);
-    expect(settled).toHaveLength(1);
+    c.dragTo(DRIFT.cx + TRAVEL * 0.5, DRIFT.cy - TRAVEL * 0.25);
+    const held = c.release();
+    expect(held.x).toBeCloseTo(0.5, 9);
+    expect(held.y).toBeCloseTo(0.25, 9);
+    expect(run(c, 3)).toBe(false);
+    expect(c.value.x).toBeCloseTo(0.5, 9);
+    expect(c.value.y).toBeCloseTo(0.25, 9);
+
+    c.setMode('spring');
+    c.beginDrag();
+    c.dragTo(DRIFT.cx - TRAVEL, DRIFT.cy + TRAVEL);
+    expect(c.release()).toEqual({ x: 0, y: 0 });
+    expect(run(c, 4)).toBe(false);
+    expect(Math.abs(c.value.x)).toBeLessThan(0.002);
+    expect(Math.abs(c.value.y)).toBeLessThan(0.002);
     expectRenderable(c.scene(ctx()));
     expectRenderable(c.scene(ctx('midnight')));
   });
@@ -259,9 +258,31 @@ describe('Dual Range Beads', () => {
   test('a press picks the nearer bead; formatting reads naturally', () => {
     expect(nearestBead({ start: 8, end: 18 }, 9)).toBe('start');
     expect(nearestBead({ start: 8, end: 18 }, 16)).toBe('end');
-    expect(snapHour(7.74)).toBe(7.5);
-    expect(formatHour(7.5)).toBe('07:30');
-    expect(formatSpan({ start: 8, end: 18.5 })).toBe('10 h 30');
+    expect(snapHour(7.74)).toBe(7.75);
+    expect(snapHour(7.6)).toBe(7.5);
+    expect(formatHour(7.25)).toBe('07:15');
+    expect(formatSpan({ start: 8, end: 18.5 })).toBe('10 h 30 min');
+    expect(formatSpan({ start: 9, end: 17 })).toBe('8 h');
+    expect(formatSpan({ start: 9, end: 9.25 })).toBe('15 min');
+  });
+
+  test('moving the window preserves its duration and clamps at the ends of the day', () => {
+    const r = { start: 9, end: 17 };
+    expect(moveWindow(r, 2)).toEqual({ start: 11, end: 19 });
+    expect(moveWindow(r, 20)).toEqual({ start: 16, end: 24 });
+    expect(moveWindow(r, -20)).toEqual({ start: 0, end: 8 });
+    for (const d of [-30, -3.25, 0, 0.75, 9, 99]) {
+      const m = moveWindow(r, d);
+      expect(m.end - m.start).toBeCloseTo(8, 9);
+      expect(m.start).toBeGreaterThanOrEqual(0);
+      expect(m.end).toBeLessThanOrEqual(24);
+    }
+  });
+
+  test('crossing attempts clamp at the 15-minute gap (no swap)', () => {
+    const r = { start: 9, end: 17 };
+    expect(moveBead(r, 'start', 23)).toEqual({ start: 16.75, end: 17 });
+    expect(moveBead(r, 'end', 1)).toEqual({ start: 9, end: 9.25 });
   });
 
   test('hour and track position round-trip within the track', () => {
@@ -271,7 +292,7 @@ describe('Dual Range Beads', () => {
   });
 
   test('the store rejects windows narrower than the gap', () => {
-    rangeStore.set({ start: 10, end: 10.5 });
+    rangeStore.set({ start: 10, end: 10.1 });
     expect(rangeStore.get().end - rangeStore.get().start).toBeGreaterThanOrEqual(RANGE_GAP);
     rangeStore.reset();
   });

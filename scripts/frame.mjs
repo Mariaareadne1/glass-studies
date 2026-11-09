@@ -13,6 +13,21 @@ const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gp
 const page = await browser.newPage({ viewport: { width: +(opt.w ?? 1200), height: +(opt.h ?? 820) }, deviceScaleFactor: +(opt.dpr ?? 2) });
 page.on('console', (m) => { if (m.type() === 'error') console.log('console error:', m.text()); });
 page.on('pageerror', (e) => console.log('page error:', e.message));
+// helpers available to step scripts: __key(sel, key, n) sends keydowns to an element in the focused view;
+// __click(text) clicks a focused-view button by its text
+await page.addInitScript(() => {
+  window.__key = (sel, key, n = 1, shift = false) => {
+    const el = document.querySelector('.focus ' + sel);
+    el.focus();
+    for (let i = 0; i < n; i++) el.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, shiftKey: shift }));
+  };
+  window.__range = (sel, v) => {
+    const r = document.querySelector('.focus ' + sel);
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(r, String(v));
+    r.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  window.__click = (text) => [...document.querySelectorAll('.focus button')].find((b) => b.textContent.trim() === text)?.click();
+});
 await page.goto(`${base}/?manual&env=${env}#/study/${opt.id}`);
 if (!opt.keep) { await page.evaluate(() => localStorage.clear()); await page.reload(); }
 await page.waitForTimeout(900);

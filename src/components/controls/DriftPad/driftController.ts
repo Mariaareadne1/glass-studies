@@ -4,100 +4,53 @@ import { THUMB, TRACK, smoked, withGlow, withTint } from '../../../glass/materia
 import type { GlassScene, RGB } from '../../../glass/types';
 import { EdgeLight } from '../../../motion/edgeLight';
 import { reduced, Spring, SPRINGS } from '../../../motion/spring';
-import { ledPixels } from '../../../pixels/iconDefinitions';
-import type { IconName } from '../../../pixels/iconDefinitions';
+import type { SpringConfig } from '../../../motion/spring';
 import { drawPixels, PixelMorpher } from '../../../pixels/PixelMorph';
-import type { DriftValue } from '../../../state/controls';
+import type { DriftMode, DriftValue } from '../../../state/controls';
 import { DOT_GAP, glassInk, ledGlow } from '../shared/ink';
 import { clamp, mixRGB, rgba } from '../shared/math';
-import { DriftBody } from './driftBody';
+import { DRIFT, fieldColor, glyphKey, toPosition, toValue, TRAVEL, windGlyph } from './windMath';
 
-export const DRIFT = {
-  W: 640,
-  H: 440,
-  cx: 244,
-  cy: 220,
-  padHalf: 168,
-  padRadius: 44,
-  puckHalf: 38,
-  puckRadius: 22,
-  /** Gap kept between the puck and the pad wall. */
-  inset: 14,
-} as const;
+export { DRIFT, toPosition, toValue } from './windMath';
 
-const TRAVEL = DRIFT.padHalf - DRIFT.puckHalf - DRIFT.inset;
-export const DRIFT_BOUNDS = { minX: DRIFT.cx - TRAVEL, maxX: DRIFT.cx + TRAVEL, minY: DRIFT.cy - TRAVEL, maxY: DRIFT.cy + TRAVEL };
-
-/** Pad position → warmth (x, left→right) and energy (y, bottom→top), 0..100. */
-export function toValue(x: number, y: number): DriftValue {
-  return {
-    x: clamp((x - DRIFT_BOUNDS.minX) / (2 * TRAVEL)) * 100,
-    y: clamp((DRIFT_BOUNDS.maxY - y) / (2 * TRAVEL)) * 100,
-  };
-}
-
-export function toPosition(v: DriftValue): { x: number; y: number } {
-  return { x: DRIFT_BOUNDS.minX + (v.x / 100) * 2 * TRAVEL, y: DRIFT_BOUNDS.maxY - (v.y / 100) * 2 * TRAVEL };
-}
-
-/** Corner colours of the field: calm/energetic × cool/warm. */
-const FIELD = {
-  calmCool: [0.66, 0.68, 0.98] as RGB,
-  calmWarm: [1.0, 0.78, 0.62] as RGB,
-  livelyCool: [0.5, 0.86, 0.9] as RGB,
-  livelyWarm: [1.0, 0.56, 0.52] as RGB,
-};
-
-export function fieldColor(v: DriftValue): RGB {
-  const x = v.x / 100;
-  const y = v.y / 100;
-  return mixRGB(mixRGB(FIELD.calmCool, FIELD.calmWarm, x), mixRGB(FIELD.livelyCool, FIELD.livelyWarm, x), y);
-}
-
-/** Within this distance of the centre the mood reads as balanced. */
-const BALANCED = 9;
-
-export function moodOf(v: DriftValue): { icon: IconName; label: string } {
-  if (Math.hypot(v.x - 50, v.y - 50) < BALANCED) return { icon: 'diamond', label: 'Balanced' };
-  const warm = v.x >= 50;
-  const lively = v.y >= 50;
-  if (lively) return warm ? { icon: 'bolt', label: 'Lively · Warm' } : { icon: 'wind', label: 'Lively · Cool' };
-  return warm ? { icon: 'leaf', label: 'Calm · Warm' } : { icon: 'rest', label: 'Calm · Cool' };
-}
+/** The glass lags the orb a little: a soft follower spring for stretch and shadow. */
+const LAG: SpringConfig = { stiffness: 260, damping: 20, mass: 1 };
+const RETURN: SpringConfig = { stiffness: 140, damping: 16, mass: 1 };
 
 /**
- * Drift Pad: a two-axis pad. The glass puck follows the hand exactly, keeps
- * drifting after a throw, loses speed to friction and bounces softly off the
- * walls, compressing against them. The field beneath is a calm/lively ×
- * cool/warm colour space, and the puck's icon changes by quadrant.
+ * Drift Pad: a two-axis wind control. The orb follows the hand exactly – the
+ * value is never smoothed – while a follower spring drives the secondary
+ * glass stretch, so the surface lags and catches up. Release either holds the
+ * last position or springs back to centre (both the value and the orb). As the
+ * orb nears a wall the glass compresses toward it ("refractive stress").
  */
 export class DriftController implements StageController {
-  readonly body: DriftBody;
+  /** Exact orb position (design units). */
+  x: number;
+  y: number;
+  private fx: Spring;
+  private fy: Spring;
   private gx: Spring;
   private gy: Spring;
-  private squashX = new Spring(0, SPRINGS.deform);
-  private squashY = new Spring(0, SPRINGS.deform);
   private edge = new EdgeLight(0.3, 1.6);
   private icon: PixelMorpher;
-  private iconName: IconName;
-  private mode: 'rest' | 'drag' | 'drift' | 'glide' = 'rest';
+  private glyph: string;
+  private state: 'rest' | 'drag' | 'return' = 'rest';
+  private mode: DriftMode = 'hold';
   private field: HTMLCanvasElement | null = null;
   private invalidate: () => void = () => undefined;
   private reducedMotion = false;
-  /** Reports the settled value after a throw or glide. */
-  onSettle: (v: DriftValue) => void = () => undefined;
-
-  setOnSettle(fn: (v: DriftValue) => void): void {
-    this.onSettle = fn;
-  }
 
   constructor(v: DriftValue) {
     const p = toPosition(v);
-    this.body = new DriftBody(p.x, p.y, DRIFT_BOUNDS);
-    this.gx = new Spring(p.x, SPRINGS.travel);
-    this.gy = new Spring(p.y, SPRINGS.travel);
-    this.iconName = moodOf(v).icon;
-    this.icon = new PixelMorpher(ledPixels(this.iconName));
+    this.x = p.x;
+    this.y = p.y;
+    this.fx = new Spring(p.x, LAG);
+    this.fy = new Spring(p.y, LAG);
+    this.gx = new Spring(p.x, RETURN);
+    this.gy = new Spring(p.y, RETURN);
+    this.glyph = glyphKey(v);
+    this.icon = new PixelMorpher(windGlyph(v));
   }
 
   attach(invalidate: () => void): void {
@@ -106,19 +59,24 @@ export class DriftController implements StageController {
 
   setReducedMotion(r: boolean): void {
     this.reducedMotion = r;
-    this.gx.config = this.gy.config = r ? reduced(SPRINGS.travel) : SPRINGS.travel;
+    this.gx.config = this.gy.config = r ? reduced(RETURN) : RETURN;
+    this.fx.config = this.fy.config = r ? reduced(LAG) : LAG;
+  }
+
+  setMode(m: DriftMode): void {
+    this.mode = m;
   }
 
   get value(): DriftValue {
-    return toValue(this.body.x, this.body.y);
+    return toValue(this.x, this.y);
   }
 
   get dragging(): boolean {
-    return this.mode === 'drag';
+    return this.state === 'drag';
   }
 
   hitPuck(x: number, y: number): boolean {
-    return Math.abs(x - this.body.x) <= DRIFT.puckHalf + 12 && Math.abs(y - this.body.y) <= DRIFT.puckHalf + 12;
+    return Math.abs(x - this.x) <= DRIFT.puckHalf + 12 && Math.abs(y - this.y) <= DRIFT.puckHalf + 12;
   }
 
   hitPad(x: number, y: number): boolean {
@@ -126,91 +84,96 @@ export class DriftController implements StageController {
   }
 
   beginDrag(): void {
-    this.mode = 'drag';
+    this.state = 'drag';
     this.edge.impulse(0.4);
     this.invalidate();
   }
 
-  dragTo(x: number, y: number, vx: number, vy: number): void {
-    this.body.place(x, y);
-    this.body.vx = vx;
-    this.body.vy = vy;
+  /** Direct manipulation: the orb is exactly where the hand puts it (clamped to the pad). */
+  dragTo(x: number, y: number): void {
+    const p = toPosition(toValue(x, y));
+    this.x = p.x;
+    this.y = p.y;
     this.invalidate();
   }
 
-  /** Release with the hand's velocity; reduced motion drops the throw. */
-  release(vx: number, vy: number): void {
-    this.body.vx = 0;
-    this.body.vy = 0;
-    if (!this.reducedMotion) this.body.launch(vx, vy);
-    this.mode = this.body.moving ? 'drift' : 'rest';
-    if (this.mode === 'rest') this.onSettle(this.value);
+  /** Let go: hold keeps the exact position; spring returns to centre. Returns the resulting value. */
+  release(): DriftValue {
+    this.state = 'rest';
+    if (this.mode === 'spring') {
+      this.glideTo({ x: 0, y: 0 });
+      return { x: 0, y: 0 };
+    }
     this.invalidate();
+    return this.value;
   }
 
-  /** Keyboard / external value: glide on springs. */
+  /** Keyboard, reset or spring return: the orb glides to a value. */
   glideTo(v: DriftValue): void {
-    if (this.mode === 'drag') return;
+    if (this.state === 'drag') return;
     const p = toPosition(v);
-    this.gx.snap(this.body.x);
-    this.gy.snap(this.body.y);
+    if (this.reducedMotion) {
+      this.x = p.x;
+      this.y = p.y;
+      this.state = 'rest';
+      this.invalidate();
+      return;
+    }
+    this.gx.snap(this.x, this.gx.v);
+    this.gy.snap(this.y, this.gy.v);
     this.gx.set(p.x);
     this.gy.set(p.y);
-    this.mode = 'glide';
+    this.state = 'return';
     this.invalidate();
   }
 
   step(dt: number): boolean {
-    if (this.mode === 'drift') {
-      const impact = this.body.step(dt);
-      if (impact > 60 && !this.reducedMotion) {
-        const k = Math.min(impact / 1800, 0.24);
-        const b = this.body;
-        if (b.x <= DRIFT_BOUNDS.minX + 1 || b.x >= DRIFT_BOUNDS.maxX - 1) this.squashX.snap(-k, 0);
-        if (b.y <= DRIFT_BOUNDS.minY + 1 || b.y >= DRIFT_BOUNDS.maxY - 1) this.squashY.snap(-k, 0);
-        this.edge.impulse(Math.min(1, impact / 900));
-      }
-      if (!this.body.moving) {
-        this.mode = 'rest';
-        this.onSettle(this.value);
-      }
-    } else if (this.mode === 'glide') {
+    if (this.state === 'return') {
       this.gx.step(dt);
       this.gy.step(dt);
-      this.body.x = this.gx.x;
-      this.body.y = this.gy.x;
-      this.body.vx = this.gx.v;
-      this.body.vy = this.gy.v;
+      this.x = this.gx.x;
+      this.y = this.gy.x;
       if (this.gx.isSettled(0.05) && this.gy.isSettled(0.05)) {
         this.gx.settle();
         this.gy.settle();
-        this.body.place(this.gx.x, this.gy.x);
-        this.mode = 'rest';
+        this.x = this.gx.x;
+        this.y = this.gy.x;
+        this.state = 'rest';
       }
     }
-    this.squashX.step(dt);
-    this.squashY.step(dt);
-    const mood = moodOf(this.value).icon;
-    if (mood !== this.iconName) {
-      this.iconName = mood;
-      if (this.reducedMotion) this.icon.show(ledPixels(mood));
-      else this.icon.morphTo(ledPixels(mood), { seed: 21, stagger: 'radial', duration: 0.5 });
+    this.fx.set(this.x);
+    this.fy.set(this.y);
+    this.fx.step(dt);
+    this.fy.step(dt);
+    const key = glyphKey(this.value);
+    if (key !== this.glyph) {
+      this.glyph = key;
+      const next = windGlyph(this.value);
+      if (this.reducedMotion) this.icon.show(next);
+      else this.icon.morphTo(next, { seed: 21, stagger: 'sweep-x', direction: this.value.x >= 0 ? 1 : -1, duration: 0.42 });
     }
     const morphing = this.icon.step(dt);
-    const speed = Math.hypot(this.body.vx, this.body.vy);
-    this.edge.update(this.reducedMotion ? 0 : speed, perimeterLength({ hw: DRIFT.puckHalf, hh: DRIFT.puckHalf, radius: DRIFT.puckRadius }), dt);
-    const deforming = !this.squashX.isSettled(0.002) || !this.squashY.isSettled(0.002);
-    return this.mode !== 'rest' || deforming || morphing || this.edge.active;
+    const lag = Math.hypot(this.x - this.fx.x, this.y - this.fy.x);
+    this.edge.update(this.reducedMotion ? 0 : lag * 40, perimeterLength({ hw: DRIFT.puckHalf, hh: DRIFT.puckHalf, radius: DRIFT.puckRadius }), dt);
+    const following = !this.fx.isSettled(0.05) || !this.fy.isSettled(0.05);
+    return this.state !== 'rest' || following || morphing || this.edge.active;
   }
 
-  /** Puck extents: stretched along its velocity, compressed against a wall it hit. */
+  /**
+   * Orb glass: centred exactly on the value, stretched along the lag of the
+   * follower spring (secondary motion) and compressed toward a nearby wall.
+   */
   puck(): { cx: number; cy: number; hw: number; hh: number; radius: number } {
-    const b = this.body;
-    const sx = this.reducedMotion ? 0 : clamp(Math.abs(b.vx) / 2600, 0, 0.18);
-    const sy = this.reducedMotion ? 0 : clamp(Math.abs(b.vy) / 2600, 0, 0.18);
-    const hw = DRIFT.puckHalf * (1 + sx - sy * 0.5 + this.squashX.x - this.squashY.x * 0.5);
-    const hh = DRIFT.puckHalf * (1 + sy - sx * 0.5 + this.squashY.x - this.squashX.x * 0.5);
-    return { cx: b.x, cy: b.y, hw, hh, radius: DRIFT.puckRadius };
+    const dx = this.reducedMotion ? 0 : this.x - this.fx.x;
+    const dy = this.reducedMotion ? 0 : this.y - this.fy.x;
+    const sx = clamp(Math.abs(dx) / 160, 0, 0.16);
+    const sy = clamp(Math.abs(dy) / 160, 0, 0.16);
+    const v = this.value;
+    const wx = clamp((Math.abs(v.x) - 0.75) / 0.25) * 0.08;
+    const wy = clamp((Math.abs(v.y) - 0.75) / 0.25) * 0.08;
+    const hw = DRIFT.puckHalf * (1 + sx - sy * 0.5 - wx + wy * 0.5);
+    const hh = DRIFT.puckHalf * (1 + sy - sx * 0.5 - wy + wx * 0.5);
+    return { cx: this.x, cy: this.y, hw, hh, radius: DRIFT.puckRadius };
   }
 
   private fieldCanvas(): HTMLCanvasElement | null {
@@ -224,10 +187,10 @@ export class DriftController implements StageController {
       g.fillStyle = rgba(rgb, 1);
       g.fillRect(x, y, 1, 1);
     };
-    put(0, 0, FIELD.livelyCool);
-    put(1, 0, FIELD.livelyWarm);
-    put(0, 1, FIELD.calmCool);
-    put(1, 1, FIELD.calmWarm);
+    put(0, 0, fieldColor({ x: -1, y: 1 }));
+    put(1, 0, fieldColor({ x: 1, y: 1 }));
+    put(0, 1, fieldColor({ x: -1, y: -1 }));
+    put(1, 1, fieldColor({ x: 1, y: -1 }));
     this.field = c;
     return c;
   }
@@ -238,11 +201,13 @@ export class DriftController implements StageController {
     const color = fieldColor(v);
     const puck = this.puck();
     const { cx, cy, padHalf: P, padRadius } = DRIFT;
+    // stress: the pad wall the orb approaches catches a little more light
+    const stress = clamp((Math.max(Math.abs(v.x), Math.abs(v.y)) - 0.7) / 0.3);
 
-    let pad = withTint(TRACK, [0.82, 0.83, 0.94], 0.3);
-    pad = { ...pad, bevel: 30, thickness: 12, frost: 0.3, milk: 0.85 };
-    let puckM = withTint({ ...THUMB, bevel: 26, thickness: 40, frost: 0.06, aberration: 0.8, specular: 1.4 }, mixRGB([0.97, 0.97, 1], color, 0.25), 0.3);
-    puckM = { ...withGlow(puckM, color, 0.22), halo: 0.35 };
+    let pad = withTint(TRACK, [0.86, 0.87, 0.95], 0.28);
+    pad = { ...pad, bevel: 30, thickness: 12 + 6 * stress, frost: 0.28, milk: 0.7 };
+    let puckM = withTint({ ...THUMB, bevel: 30, thickness: 42, frost: 0.03, aberration: 0.35, specular: 1.4, milk: 0.5 }, mixRGB([0.98, 0.98, 1], color, 0.15), 0.2);
+    puckM = { ...withGlow(puckM, color, 0.12), halo: 0.2 };
     if (dark) {
       pad = smoked(pad, 0.85);
       puckM = smoked(puckM, 0.35);
@@ -254,41 +219,36 @@ export class DriftController implements StageController {
       g.beginPath();
       g.roundRect(cx - P + 6, cy - P + 6, (P - 6) * 2, (P - 6) * 2, padRadius - 6);
       g.clip();
-      g.globalAlpha = dark ? 0.5 : 0.62;
+      g.globalAlpha = dark ? 0.4 : 0.5;
       if (field) {
         g.imageSmoothingEnabled = true;
-        // sample from pixel centres so the corners carry the pure corner colours
         g.drawImage(field, 0.5, 0.5, 1, 1, cx - P, cy - P, P * 2, P * 2);
       }
       g.globalAlpha = 1;
-      // the puck lights the field beneath it
-      const glow = g.createRadialGradient(puck.cx, puck.cy, 4, puck.cx, puck.cy, 120);
-      glow.addColorStop(0, rgba(mixRGB(color, [1, 1, 1], 0.4), dark ? 0.4 : 0.5));
-      glow.addColorStop(1, rgba(color, 0));
-      g.fillStyle = glow;
-      g.fillRect(cx - P, cy - P, P * 2, P * 2);
+      // guide axes and a crosshair under the orb (the orb's single crisp reflection rides on it)
+      g.fillStyle = dark ? 'rgba(235,235,255,0.12)' : 'rgba(60,56,96,0.12)';
+      g.fillRect(cx - TRAVEL, cy - 0.5, TRAVEL * 2, 1);
+      g.fillRect(cx - 0.5, cy - TRAVEL, 1, TRAVEL * 2);
+      g.fillStyle = dark ? 'rgba(235,235,255,0.22)' : 'rgba(60,56,96,0.2)';
+      g.fillRect(puck.cx - 22, puck.cy - 0.5, 44, 1);
+      g.fillRect(puck.cx - 0.5, puck.cy - 22, 1, 44);
       g.restore();
     });
 
     const grid = ctx.paint('drift-grid', (g) => {
-      // a fine LED grid set into the pad; points brighten as the puck passes
       const n = 9;
       const span = TRAVEL * 2;
       for (let i = 0; i < n; i++) {
         for (let j = 0; j < n; j++) {
-          const x = DRIFT_BOUNDS.minX + (span * i) / (n - 1);
-          const y = DRIFT_BOUNDS.minY + (span * j) / (n - 1);
+          const x = cx - TRAVEL + (span * i) / (n - 1);
+          const y = cy - TRAVEL + (span * j) / (n - 1);
           const d = Math.hypot(x - puck.cx, y - puck.cy);
           const k = clamp(1 - d / 140);
-          g.fillStyle = dark ? `rgba(235,235,255,${0.16 + 0.5 * k})` : `rgba(60,56,96,${0.14 + 0.36 * k})`;
-          const s = 2.2 + 1.4 * k;
+          g.fillStyle = dark ? `rgba(235,235,255,${0.12 + 0.4 * k})` : `rgba(60,56,96,${0.1 + 0.3 * k})`;
+          const s = 2 + 1.2 * k;
           g.fillRect(x - s / 2, y - s / 2, s, s);
         }
       }
-      // axis hairlines through the centre
-      g.fillStyle = dark ? 'rgba(235,235,255,0.1)' : 'rgba(60,56,96,0.1)';
-      g.fillRect(cx - TRAVEL, cy - 0.5, TRAVEL * 2, 1);
-      g.fillRect(cx - 0.5, cy - TRAVEL, 1, TRAVEL * 2);
     });
 
     const icon = ctx.paint('drift-icon', (g) => {
@@ -303,12 +263,14 @@ export class DriftController implements StageController {
     });
 
     return {
-      env: { kind: ctx.env, glowColor: color, glowPos: [puck.cx, puck.cy], glowRadius: 300, glowStrength: dark ? 0.16 : 0.1, brightness: 1, time: ctx.time },
+      env: { kind: ctx.env, glowColor: color, glowPos: [puck.cx, puck.cy], glowRadius: 300, glowStrength: dark ? 0.12 : 0.06, brightness: 1, time: ctx.time },
       under,
       layers: [
         { shapes: [{ cx, cy, hw: P, hh: P, radius: padRadius, skew: 0, material: pad }], above: grid },
-        { shapes: [{ ...puck, skew: 0, material: puckM, edge: this.edge.params(mixRGB(color, [1, 1, 1], 0.4)) }], above: icon },
+        { shapes: [{ ...puck, skew: 0, material: puckM, edge: this.edge.params(mixRGB(color, [1, 1, 1], 0.5)) }], above: icon },
       ],
     };
   }
 }
+
+export const DRIFT_SPRINGS = { LAG, RETURN, deform: SPRINGS.deform };
