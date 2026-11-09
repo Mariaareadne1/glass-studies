@@ -5,7 +5,8 @@ test('gallery renders every study without errors and switches theme', async ({ p
   const errors = collectErrors(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Glass Studies' })).toBeVisible();
-  await expect(page.locator('article.study')).toHaveCount(10);
+  await expect(page.locator('.gallery:not(.gallery--loaders) article.study')).toHaveCount(10);
+  await expect(page.locator('.gallery--loaders article.study')).toHaveCount(4);
   for (const name of ['Solar', 'Atmosphere', 'Halo', 'Thermal', 'Modes', 'Forecast', 'Iris', 'Droplet', 'Drift', 'Beads']) {
     await expect(page.getByRole('heading', { name })).toBeVisible();
   }

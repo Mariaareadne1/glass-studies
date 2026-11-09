@@ -62,9 +62,11 @@ export function FocusView({ study, theme, onClose }: FocusViewProps) {
       </div>
       <div className="focus__foot">
         <p>{study.detail}</p>
-        <button type="button" className="text-button" onClick={() => study.stores.forEach((s) => s.reset())}>
-          Reset study
-        </button>
+        {study.stores.length > 0 && (
+          <button type="button" className="text-button" onClick={() => study.stores.forEach((s) => s.reset())}>
+            Reset study
+          </button>
+        )}
       </div>
     </div>
   );

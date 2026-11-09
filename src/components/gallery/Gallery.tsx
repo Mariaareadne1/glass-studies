@@ -5,11 +5,14 @@ interface GalleryProps {
   studies: StudyDef[];
   env: EnvironmentKind;
   onOpen: (id: string) => void;
+  /** Loaders sit in a denser grid under their own section heading. */
+  variant?: 'studies' | 'loaders';
 }
 
-export function Gallery({ studies, env, onOpen }: GalleryProps) {
+export function Gallery({ studies, env, onOpen, variant = 'studies' }: GalleryProps) {
+  const Title = variant === 'loaders' ? 'h3' : 'h2';
   return (
-    <div className="gallery">
+    <div className={variant === 'loaders' ? 'gallery gallery--loaders' : 'gallery'}>
       {studies.map((s) => (
         <article key={s.id} id={`study-${s.id}`} className="study" aria-labelledby={`study-${s.id}-title`}>
           <div className="plinth">
@@ -20,9 +23,9 @@ export function Gallery({ studies, env, onOpen }: GalleryProps) {
           </div>
           <div className="caption">
             <span className="caption__num">{s.num}</span>
-            <h2 className="caption__title" id={`study-${s.id}-title`}>
+            <Title className="caption__title" id={`study-${s.id}-title`}>
               <button type="button" onClick={() => onOpen(s.id)}>{s.title}</button>
-            </h2>
+            </Title>
             <p className="caption__desc">{s.description}</p>
             <p className="caption__hint">{s.hint}</p>
           </div>
