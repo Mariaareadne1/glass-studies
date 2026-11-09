@@ -52,7 +52,7 @@ Issues found and fixed during inspection: thumb overshoot clipping past the rim;
 
 ---
 
-## V2 "Pearl Optics" QA (2026-11-08, branch `v2/pearl-optics`)
+## V2 "Pearl Optics" QA (2026-11-08, merged to `main`)
 
 | Check | Result |
 | --- | --- |

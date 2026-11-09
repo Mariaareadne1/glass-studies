@@ -2,7 +2,7 @@
 
 *An exploration of light, material, and interaction.*
 
-> **V2, "Pearl Optics"** (branch `v2/pearl-optics`, tag `v2.0.0`) is a visual and material refinement toward a supplied art-direction sheet: pearl-neutral glass, thick milky rims, studio specular streaks, restrained spectral fringes, coloured halos and LED dot-matrix pixel art. V1 is preserved at tag **`v1-original`**. See [docs/V2_VISUAL_COMPARISON.md](docs/V2_VISUAL_COMPARISON.md).
+> **V2, "Pearl Optics"** (tag `v2.0.0`, now on `main`) is a visual and material refinement toward a supplied art-direction sheet: pearl-neutral glass, thick milky rims, studio specular streaks, restrained spectral fringes, coloured halos and LED dot-matrix pixel art. V1 is preserved at tag **`v1-original`**. See [docs/V2_VISUAL_COMPARISON.md](docs/V2_VISUAL_COMPARISON.md).
 >
 > | V1 | V2 |
 > | --- | --- |
@@ -15,15 +15,15 @@
 
 Glass Studies is an interactive exhibition of six small liquid-glass instruments: a day/night toggle, a weather selector, a brightness dial, a temperature slider, a mode selector and a compound weather card. Every control is live. The glass refracts what lies beneath it on the GPU, thumbs stretch and settle on real springs, a luminous highlight races around rims as they move, and the pixel-art icons rebuild themselves square by square.
 
-![The collection](docs/media/gallery.jpg)
+![The collection](docs/media/v2/gallery.jpg)
 
 | Refraction over the optics test pattern | Midnight backdrop |
 | --- | --- |
-| ![Solar over the optics checker](docs/media/optics.jpg) | ![Forecast on Midnight](docs/media/forecast.jpg) |
+| ![Solar over the optics checker](docs/media/v2/optics.jpg) | ![The collection on Midnight](docs/media/v2/gallery-dark.jpg) |
 
 Solar transition, sampled every 33 ms with a deterministic clock (`?manual`):
 
-![Solar transition frames](docs/media/solar-sequence.jpg)
+![Solar transition frames](docs/media/v2/solar-sequence.jpg)
 
 ## Run it
 
