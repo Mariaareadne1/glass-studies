@@ -128,7 +128,7 @@ Real iOS and Android hardware has not been tested. Mobile behaviour was verified
 ```bash
 npm run typecheck        # tsc -b
 npm run lint             # oxlint
-npm test                 # Vitest: 136 unit/component tests
+npm test                 # Vitest: 137 unit/component tests
 npx vitest run --coverage
 npm run test:e2e         # Playwright against the production build (Chromium, mobile, WebKit, Firefox)
 node scripts/perf.mjs    # frame-time probe with the six original studies animating (needs `npm run preview`); --all puts everything on screen

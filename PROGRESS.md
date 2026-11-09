@@ -10,7 +10,7 @@ Built on v3/new-studies (d62bc60). Baseline for pixel regression: worktree ../gl
 - **Stage 5 (this commit):** lint back to the 5 pre-existing warnings, focused view no longer overflows on phones (pre-existing grid min-content bug), compact Scrubber card, refreshed copy, Caustic photon map 20× cheaper (same result), `scripts/perf-focus.mjs`, docs (README, CASE_STUDY §10, DESIGN_SYSTEM, QA), media in docs/media/v3.1.
 
 ### Test status
-- typecheck ✅ · lint 0 errors, 5 pre-existing warnings · unit 136/136 ✅
+- typecheck ✅ · lint 0 errors, 5 pre-existing warnings · unit 137/137 ✅
 - E2E: 49/49 passed (one worker, Chromium + mobile + WebKit + Firefox smoke, 2.1 min). Perf: 60 fps everywhere measured, Caustic after the footprint-only photon map. Parallel runs on this Mac stall when the machine idles/sleeps (wall time 17 min for 7 tests that each take 2–9 s; a browser launch timed out after 180 s); not reproducible serially or under load. Recorded as an environment limitation, not hidden.
 
 ### Resume here
