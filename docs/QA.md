@@ -7,7 +7,7 @@ Environment: macOS (Darwin 25.4), Node 22.21, Playwright 1.64.1 with Chromium (A
 | Check | Command | Result |
 | --- | --- | --- |
 | Type check | `npm run typecheck` | ✅ clean |
-| Lint | `npx oxlint src e2e` | ✅ 0 errors (1 advisory warning, in `GlassStage`: setState in effect during backend fallback) |
+| Lint | `npx oxlint src e2e` | ✅ 0 errors. 5 advisory React-pattern warnings (ref and state mutation, setState in effect) in `GlassStage` and `HaloDial`; intentional, not failures |
 | Unit and component tests | `npm test` | ✅ 56 / 56 |
 | Coverage | `npx vitest run --coverage` | 72.8% statements, 67.9% branches. `webglRenderer.ts`, `GlassStage.tsx` and the pointer hook need a real browser and are covered by E2E instead |
 | E2E, Chromium desktop | `npm run test:e2e` | ✅ 10 tests: all six studies (mouse, keyboard, wheel, drag, rapid reversals), persistence and reset, focus view, fallback |
@@ -56,7 +56,7 @@ Issues found and fixed during inspection: thumb overshoot clipping past the rim;
 
 | Check | Result |
 | --- | --- |
-| Type check / lint | ✅ clean / 0 errors |
+| Type check / lint | ✅ clean / 0 errors (5 advisory warnings, as above) |
 | Unit and component tests | ✅ 56 / 56 (unchanged suite; V2 is visual, and the semantics are identical) |
 | E2E (production build) | ✅ 17 / 17: Chromium (all six studies), mobile emulation, WebKit and Firefox smoke |
 | Performance (`scripts/perf.mjs`, all six animating, DPR 2) | ✅ mean 16.67 ms, p99 16.8 ms, 0 frames over 33 ms. The loop is idle before and after (the V2 shader terms fit in the same budget on this machine) |
