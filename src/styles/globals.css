@@ -778,10 +778,20 @@ button {
 }
 
 /* ---------------------------------------------------------------- V2: light type on glass */
-/* In V2 the glass bodies are mid-tone pearl-lavender, so text set *on* glass is light
-   (as in the reference), with a soft lavender shadow that keeps large type ≥ 3:1. */
+/* V2.1: on light studios the pearl glass is clear and pale, so text set *on* glass
+   uses a deep pearl-grey ink (≥ 4.5:1 against the glass behind it). On Midnight the
+   smoked glass keeps light type with a soft lavender shadow. */
 .on-glass,
 [data-env] .on-glass {
+  --ink: #2c2a40;
+  --ink-2: rgba(44, 42, 64, 0.86);
+  --ink-3: rgba(44, 42, 64, 0.7);
+  --line: rgba(44, 42, 64, 0.18);
+  color: var(--ink);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.55);
+}
+
+[data-env='midnight'] .on-glass {
   --ink: #ffffff;
   --ink-2: rgba(255, 255, 255, 0.86);
   --ink-3: rgba(255, 255, 255, 0.72);
@@ -805,7 +815,7 @@ button {
 .on-glass .fc__details dt,
 .on-glass .thermal-card__label,
 .on-glass .thermal-card__cond {
-  color: rgba(255, 255, 255, 0.84);
+  color: var(--ink-2);
 }
 
 [data-env='midnight'] .on-glass .fc__day.is-active {
@@ -855,7 +865,7 @@ button {
   letter-spacing: inherit;
 }
 
-/* Visitors who ask for more contrast get dark ink on a light halo inside the glass. */
+/* Visitors who ask for more contrast get the strongest ink for each studio. */
 @media (prefers-contrast: more) {
   .on-glass,
   [data-env] .on-glass {
@@ -865,10 +875,11 @@ button {
     color: var(--ink);
     text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 0 14px rgba(255, 255, 255, 0.75);
   }
-  .on-glass .fc__place span,
-  .on-glass .fc__details dt,
-  .on-glass .thermal-card__label,
-  .on-glass .thermal-card__cond {
-    color: #2a2640;
+  [data-env='midnight'] .on-glass {
+    --ink: #ffffff;
+    --ink-2: #ffffff;
+    --ink-3: #f0eeff;
+    color: var(--ink);
+    text-shadow: 0 0 2px rgba(10, 8, 24, 0.95), 0 0 12px rgba(10, 8, 24, 0.8);
   }
 }

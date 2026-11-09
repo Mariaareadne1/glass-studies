@@ -11,6 +11,8 @@ interface RadioSlotsProps<T extends string> {
   core: SelectorCore;
   slotHW: number;
   slotHH: number;
+  /** Corner radius of each slot's focus outline (defaults to the stylesheet's). */
+  slotRadius?: number;
   name: string;
   testid: string;
   overlayRef: RefObject<HTMLDivElement | null>;
@@ -115,7 +117,7 @@ export function RadioSlots<T extends string>(props: RadioSlotsProps<T>) {
             tabIndex={checked ? 0 : -1}
             className="hit hit--slot"
             data-option={o}
-            style={{ left: slots[i] - slotHW, top: y - slotHH, width: slotHW * 2, height: slotHH * 2 }}
+            style={{ left: slots[i] - slotHW, top: y - slotHH, width: slotHW * 2, height: slotHH * 2, borderRadius: props.slotRadius }}
             onKeyDown={(e) => onKey(e, i)}
             onClick={(e) => {
               if (e.detail === 0) onChange(o);

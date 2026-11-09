@@ -50,4 +50,16 @@ Rounds of comparison and the remaining gaps are logged at the end of this docume
 - **Atmosphere and Modes segments.** In the reference each segment is a separate raised glass tile. In V2 the wells are drawn as content inside the track glass (no extra glass layers, to stay within 4 shapes per pass), so they read slightly flatter.
 - **Forecast proportions.** The reference card is wide and short (the day row sits beside the conditions). V2 keeps the V1 card geometry, with details plus a resizing row, because that is what the detail toggle animates.
 - **Halo's orbit and the Thermal "orbit".** Only Halo gets a faint orbit ring. Thermal's decorative rings were left out as a generated-image flourish.
-- **Contrast (measured).** White type on the mid-tone glass is the reference's look, but the glass behind it measures **2.0–2.6:1** against white (Halo dial 2.5–2.6, Forecast card 2.0–2.4). That is below WCAG AA even for large text. A dark text halo improves glyph edges, and `prefers-contrast: more` switches all in-glass type to dark ink on a light halo. Every value is also exposed to assistive technology through ARIA.
+- **Contrast (measured, V2.0; superseded in V2.1 below).** White type on the mid-tone glass is the reference's look, but the glass behind it measures **2.0–2.6:1** against white (Halo dial 2.5–2.6, Forecast card 2.0–2.4). That is below WCAG AA even for large text. A dark text halo improves glyph edges, and `prefers-contrast: more` switches all in-glass type to dark ink on a light halo. Every value is also exposed to assistive technology through ARIA.
+
+## V2.1 material polish (V2.0 | V2.1 pairs in `docs/media/v2.1/`)
+
+| Round | Largest discrepancies found | Fix |
+| --- | --- | --- |
+| r1 | 1) The new internal highlight sweep read as a broad diagonal glare. 2) White type and LED icons washed out on the now-pale glass. 3) The Thermal card turned almost white | Sweep narrowed and cut to about a quarter. Pearl-grey ink for in-glass content on light studios |
+| r2 | 1) The Forecast detail switch lost its blue "on" state. 2) The tinted Modes ink went muddy (amber turned brown) | The pearl pass spares saturated state colours. Tinted ink mixes less mode colour into the grey |
+| r3 | The Thermal focus outline was still a pill around the squarer housing | Focus outlines follow the new radii |
+
+**Contrast (measured, V2.1).** In-glass type measures **7.5–13.8:1** on Pearl, against the glass sampled behind it (Halo, Thermal and Forecast readouts), up from 2.0–2.6:1. On Midnight it measures 4.5–15.9:1.
+
+**The orbit ring.** Halo's decorative orbit (a generated-image flourish) was removed, not replaced. Its composition rests on the dial's rim, arc and specular.

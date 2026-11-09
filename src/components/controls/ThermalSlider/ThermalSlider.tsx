@@ -68,7 +68,7 @@ export function ThermalSlider({ env }: { env: EnvironmentKind }) {
         aria-valuetext={`${text} degrees Celsius`}
         data-testid="thermal"
         className="hit"
-        style={{ left: THERMAL.trackX - THERMAL.trackHW, top: THERMAL.cy - THERMAL.trackHH, width: THERMAL.trackHW * 2, height: THERMAL.trackHH * 2, borderRadius: THERMAL.trackHW }}
+        style={{ left: THERMAL.trackX - THERMAL.trackHW, top: THERMAL.cy - THERMAL.trackHH, width: THERMAL.trackHW * 2, height: THERMAL.trackHH * 2, borderRadius: THERMAL.trackRadius }}
         onKeyDown={onKey}
       />
       <div className="readout thermal-card on-glass" aria-hidden="true" style={{ left: THERMAL.cardX - 18, top: THERMAL.cy - 52 }}>

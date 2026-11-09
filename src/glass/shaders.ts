@@ -238,8 +238,11 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     // the lean is part of the geometry: shear the displacement with it
     disp.x += g2.y * -disp.y;
 
+    // V2.1: on light studios the glass is clearer in the centre and keeps its
+    // optical activity (frost, absorption) near the perimeter
+    float pearl = uEnvKind == 1 ? 0.0 : 1.0;
     float ab = uMat[i].z * uTune.z;
-    float frost = uMat[i].y * uTune.y * (0.35 + 0.65 * om) * 7.0;
+    float frost = uMat[i].y * uTune.y * mix(0.35 + 0.65 * om, 0.18 + 0.82 * om, pearl) * 7.0;
     vec3 refr;
     refr.r = sampleFrost(d + disp * (1.0 - 0.35 * ab), frost).r;
     refr.g = sampleFrost(d + disp, frost).g;
@@ -254,7 +257,7 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     // Body: the slab absorbs and scatters toward its body colour, more where it is
     // deepest – a calm, tinted centre framed by a bright, thin-walled rim.
     vec4 tint = uTint[i];
-    float absorb = tint.a * (0.30 + 0.70 * hgt);
+    float absorb = tint.a * mix(0.30 + 0.70 * hgt, 0.42 + 0.30 * om, pearl);
     refr = mix(refr, refr * (tint.rgb * 1.1), absorb * 0.8);
     refr = mix(refr, tint.rgb, absorb * 0.6);
     refr *= uMat2[i].y;
@@ -270,7 +273,7 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     vec3 refv = reflect(vec3(0.0, 0.0, -1.0), n3);
     float spec = pow(max(dot(refv, L), 0.0), 60.0) * specK;
     float rimLit = fres * (0.50 * max(facing, 0.0) + 0.20 * max(-facing, 0.0));
-    float rimShade = fres * (0.08 + 0.12 * max(-facing, 0.0));
+    float rimShade = fres * (0.08 + 0.12 * max(-facing, 0.0)) * (1.0 - 0.6 * pearl);
 
     // milky rim: the thick wall scatters light; brighter toward the key light
     float milk = uMat2[i].z * uTune3.x;
@@ -279,11 +282,15 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     refr = screenBlend(refr, vec3(1.0, 0.995, 1.0) * milk * band * band * lit * 0.6);
     // a soft separation ring where the wall meets the body
     float ring = exp(-pow((t - 0.64) / 0.12, 2.0));
-    refr *= 1.0 - ring * 0.05 * milk;
+    refr *= 1.0 - ring * mix(0.05, 0.015, pearl) * milk;
 
     // narrow studio-light streak along the upper edge, attached to the geometry
     float topness = smoothstep(0.05, 0.85, outward.y * 0.85 + facing * 0.35);
-    float streak = exp(-pow((t - 0.17) / 0.065, 2.0)) * topness;
+    float streak = exp(-pow((t - 0.17) / mix(0.065, 0.05, pearl), 2.0)) * topness * (1.0 + 0.25 * pearl);
+    // light studios: a delicate glint in the lit corner and a soft internal sweep
+    vec2 cornerDir = normalize(vec2(-0.72, 0.69));
+    float glint = pearl * exp(-pow((t - 0.12) / 0.05, 2.0)) * pow(max(dot(outward, cornerDir), 0.0), 28.0) * 0.55;
+    float sweep = pearl * exp(-pow((dot(lp / h, vec2(0.62, 0.78)) - 0.42) / 0.09, 2.0)) * hgt * 0.014;
     // a soft secondary reflection on the lower wall
     float lowGlint = exp(-pow((t - 0.22) / 0.12, 2.0)) * smoothstep(0.2, 0.9, -outward.y) * 0.35;
     float sheen = 0.05 * smoothstep(-0.1, 1.0, lp.y / h.y) * hgt * uMat[i].w;
@@ -294,7 +301,7 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     vec3 film = 0.5 + 0.5 * cos(6.2831 * (uu * 2.0 + facing * 0.3 + vec3(0.55, 0.78, 0.0)));
     float fringe = exp(-pow((t - 0.08) / 0.07, 2.0)) * (0.5 + 0.5 * abs(outward.x)) * uMat[i].z * uTune.z;
     vec3 rimCol = mix(vec3(1.0), film, 0.35);
-    refr = refr * (1.0 - rimShade) + vec3(spec * 0.9 + sheen) + vec3(streak * 0.62 + lowGlint) * specK
+    refr = refr * (1.0 - rimShade) + vec3(spec * 0.9 + sheen) + vec3(streak * 0.62 + lowGlint + glint + sweep) * specK
          + rimCol * rimLit * 0.5 + caustic + (film - 0.45) * fringe * 0.28;
     // crisp manufactured hairline
     float line = exp(-pow(sd * uScale / 1.1, 2.0));

@@ -4,6 +4,8 @@
 
 > **V2, "Pearl Optics"** (tag `v2.0.0`, now on `main`) is a visual and material refinement toward a supplied art-direction sheet: pearl-neutral glass, thick milky rims, studio specular streaks, restrained spectral fringes, coloured halos and LED dot-matrix pixel art. V1 is preserved at tag **`v1-original`**. See [docs/V2_VISUAL_COMPARISON.md](docs/V2_VISUAL_COMPARISON.md).
 >
+> **V2.1 material polish** (branch `v2.1/material-polish`): lighter, clearer pearl glass on light studios with dark pearl-grey ink, rounded-square trays for Atmosphere and Thermal, and Halo's orbit ring removed. Before/after pairs are in [docs/media/v2.1](docs/media/v2.1).
+>
 > | V1 | V2 |
 > | --- | --- |
 > | ![V1 gallery](docs/media/v1/gallery.jpg) | ![V2 gallery](docs/media/v2/gallery.jpg) |
@@ -15,11 +17,11 @@
 
 Glass Studies is an interactive exhibition of six small liquid-glass instruments: a day/night toggle, a weather selector, a brightness dial, a temperature slider, a mode selector and a compound weather card. Every control is live. The glass refracts what lies beneath it on the GPU, thumbs stretch and settle on real springs, a luminous highlight races around rims as they move, and the pixel-art icons rebuild themselves square by square.
 
-![The collection](docs/media/v2/gallery.jpg)
+![The collection](docs/media/v2.1/gallery.jpg)
 
 | Refraction over the optics test pattern | Midnight backdrop |
 | --- | --- |
-| ![Solar over the optics checker](docs/media/v2/optics.jpg) | ![The collection on Midnight](docs/media/v2/gallery-dark.jpg) |
+| ![Solar over the optics checker](docs/media/v2/optics.jpg) | ![The collection on Midnight](docs/media/v2.1/gallery-dark.jpg) |
 
 Solar transition, sampled every 33 ms with a deterministic clock (`?manual`):
 
@@ -50,7 +52,7 @@ Useful URL flags:
 | 01 | **Solar** (day/night switch) | drag, click either side, ← → Space Home End | Thumb on a spring with stretch, lean and end-stop compression. The moon→sun morph is *scrubbed by the thumb*, edge light, warm/cool ambient light |
 | 02 | **Atmosphere** (4-way weather radiogroup) | click/tap, drag tile, press-and-slide on track, arrows Home End | A liquid tile that stretches strongly, icon particle morphs, a short pass of weather through the air |
 | 03 | **Halo** (brightness slider, 0–100 %, default 72) | drag around the dial, wheel while focused, arrows PageUp/Down Home End | Arc, glass bead, sun rays, dial warmth, surface exposure, perimeter glow following the handle |
-| 04 | **Thermal** (vertical slider, 10–35 °C demo range) | drag the thumb 1:1, press the track, ↑ ↓ in 0.5° steps, PageUp/Down Home End | Mercury column, ticks seen through glass, card illustration (frost / cloud / sun), air colour |
+| 04 | **Thermal** (vertical slider, 10–35 °C demo range) | drag the thumb 1:1, press the track, ↑ ↓ in 0.5° steps, PageUp/Down Home End | Warm/cool capsule fill, ticks seen through glass, card illustration (frost / cloud / sun), air colour |
 | 05 | **Modes** (4-way radiogroup) | as Atmosphere | Heavier, leaning tile. A leaf bends, a bolt charges, stars twinkle, a bud opens (two-step morph) |
 | 06 | **Forecast** (compound card) | day radiogroup, *Detailed view* switch | Three glass layers. The card height is a spring, nested glass follows it each frame. **Sample data, not live** |
 
@@ -79,7 +81,7 @@ Real iOS and Android hardware has not been tested. Mobile behaviour was verified
 ```bash
 npm run typecheck        # tsc -b
 npm run lint             # oxlint
-npm test                 # Vitest: 56 unit/component tests
+npm test                 # Vitest: 62 unit/component tests
 npx vitest run --coverage
 npm run test:e2e         # Playwright against the production build (Chromium, mobile, WebKit, Firefox)
 node scripts/perf.mjs    # frame-time probe with all six studies animating (needs `npm run preview`)

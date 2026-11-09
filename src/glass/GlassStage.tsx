@@ -4,6 +4,7 @@ import { register, wake } from '../motion/scheduler';
 import { CanvasGlassRenderer } from './canvasRenderer';
 import { detectBackend } from './rendererCapabilities';
 import type { RendererBackend } from './rendererCapabilities';
+import { sceneForEnv } from './lightMaterial';
 import { onTuningChange } from './tuning';
 import type { ContentLayer, EnvironmentKind, GlassRenderer, GlassScene } from './types';
 import { WebGLGlassRenderer } from './webglRenderer';
@@ -172,7 +173,7 @@ export function GlassStage({ controller, width, height, env, label, scaleRef, ov
           attention,
           paint,
         });
-        renderer.render({ ...scene, attention });
+        renderer.render({ ...sceneForEnv(scene, kind), attention });
         dirty = false;
       }
       if (renderer instanceof WebGLGlassRenderer && renderer.isLost) {

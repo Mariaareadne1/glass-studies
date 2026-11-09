@@ -7,7 +7,7 @@ import { drawPixels } from '../../../pixels/PixelMorph';
 import { rng } from '../../../pixels/morphAlgorithm';
 import { WEATHER } from '../../../state/controls';
 import type { Weather } from '../../../state/controls';
-import { DOT_GAP, lightInk } from '../shared/ink';
+import { DOT_GAP, glassInk, ledGlow } from '../shared/ink';
 import { clamp, mixRGB, rampRGB, rgba, smoothstep } from '../shared/math';
 import { LIGHT } from '../shared/palette';
 import { SelectorCore } from '../shared/selectorCore';
@@ -22,6 +22,10 @@ export const ATMO = {
   tileHW: 56,
   tileHH: 52,
   spacing: 125,
+  /** V2.1 rounded-square family: the tray's corner is concentric with the tile's (tile radius + inset). */
+  tileRadius: 30,
+  trackRadius: 44,
+  wellRadius: 27,
 } as const;
 
 export const ATMO_SLOTS = [-1.5, -0.5, 0.5, 1.5].map((k) => ATMO.cx + k * ATMO.spacing);
@@ -55,7 +59,7 @@ export class AtmosphereController implements StageController {
   constructor(initial: Weather) {
     const i = WEATHER.indexOf(initial);
     this.core = new SelectorCore(
-      { slots: ATMO_SLOTS, y: ATMO.cy, tileHW: ATMO.tileHW, tileHH: ATMO.tileHH, tileRadius: 40 },
+      { slots: ATMO_SLOTS, y: ATMO.cy, tileHW: ATMO.tileHW, tileHH: ATMO.tileHH, tileRadius: ATMO.tileRadius },
       i,
       ledPixels(ICON[initial]),
       { stretchGain: 0.0013, maxStretch: 0.34, leanAmp: 0.6, edgeGain: 2.2 },
@@ -171,7 +175,7 @@ export class AtmosphereController implements StageController {
       // restrained light pooled beneath the selected tile, inside the track only
       g.save();
       g.beginPath();
-      g.roundRect(ATMO.cx - ATMO.trackHW + 4, ATMO.cy - ATMO.trackHH + 4, ATMO.trackHW * 2 - 8, ATMO.trackHH * 2 - 8, ATMO.trackHH);
+      g.roundRect(ATMO.cx - ATMO.trackHW + 4, ATMO.cy - ATMO.trackHH + 4, ATMO.trackHW * 2 - 8, ATMO.trackHH * 2 - 8, ATMO.trackRadius - 4);
       g.clip();
       const grad = g.createRadialGradient(tile.cx, ATMO.cy, 4, tile.cx, ATMO.cy, 110);
       grad.addColorStop(0, rgba(color, dark ? 0.35 : 0.42));
@@ -187,7 +191,7 @@ export class AtmosphereController implements StageController {
         const cover = smoothstep(ATMO.tileHW * 0.4, ATMO.tileHW * 1.4, Math.abs(x - tile.cx));
         g.save();
         g.beginPath();
-        g.roundRect(x - ATMO.tileHW + 3, ATMO.cy - ATMO.tileHH + 3, (ATMO.tileHW - 3) * 2, (ATMO.tileHH - 3) * 2, 34);
+        g.roundRect(x - ATMO.tileHW + 3, ATMO.cy - ATMO.tileHH + 3, (ATMO.tileHW - 3) * 2, (ATMO.tileHH - 3) * 2, ATMO.wellRadius);
         g.fillStyle = `rgba(255,255,255,${(dark ? 0.04 : 0.08) * cover})`;
         g.fill();
         g.lineWidth = 1.2;
@@ -196,9 +200,9 @@ export class AtmosphereController implements StageController {
         g.restore();
         drawPixels(g, ledPixels(ICON[WEATHER[i]]).map((p) => ({ ...p, alpha: 0.85 * cover, size: 1 })), x, ATMO.cy, 3.6, ctx.pxPerUnit, {
           gap: DOT_GAP,
-          ink: lightInk,
+          ink: glassInk(dark),
           glow: 2.5,
-          glowAlpha: 0.35,
+          glowAlpha: ledGlow(dark, 0.35),
         });
       });
     });
@@ -206,11 +210,11 @@ export class AtmosphereController implements StageController {
     const icon = ctx.paint('atmo-tile-icon', (g) => {
       drawPixels(g, core.morph.states(), tile.cx, tile.cy, 4.6, ctx.pxPerUnit, {
         gap: DOT_GAP,
-        ink: lightInk,
+        ink: glassInk(dark),
         scaleX: core.deform.along,
         scaleY: core.deform.across,
         glow: 3.5,
-        glowAlpha: 0.5,
+        glowAlpha: ledGlow(dark, 0.5),
       });
     });
 
@@ -227,7 +231,7 @@ export class AtmosphereController implements StageController {
       under,
       layers: [
         {
-          shapes: [{ cx: ATMO.cx, cy: ATMO.cy, hw: ATMO.trackHW, hh: ATMO.trackHH, radius: ATMO.trackHH, skew: 0, material: track }],
+          shapes: [{ cx: ATMO.cx, cy: ATMO.cy, hw: ATMO.trackHW, hh: ATMO.trackHH, radius: ATMO.trackRadius, skew: 0, material: track }],
           above: segments,
         },
         {

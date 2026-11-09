@@ -8,7 +8,7 @@ import { ledPixels as iconPixels } from '../../../pixels/iconDefinitions';
 import type { IconName } from '../../../pixels/iconDefinitions';
 import { drawPixels, PixelMorpher } from '../../../pixels/PixelMorph';
 import { THERMAL_MAX, THERMAL_MIN, THERMAL_STEP } from '../../../state/controls';
-import { DOT_GAP, lightInk } from '../shared/ink';
+import { DOT_GAP, glassInk, ledGlow } from '../shared/ink';
 import { clamp, mixRGB, rampRGB, rgba, rubber } from '../shared/math';
 
 export const THERMAL = {
@@ -24,6 +24,10 @@ export const THERMAL = {
   cardX: 440,
   cardHW: 128,
   cardHH: 96,
+  /** V2.1 rounded-square family shared with the icon tiles: housing, thumb and card corners. */
+  trackRadius: 24,
+  thumbRadius: 13,
+  cardRadius: 28,
 } as const;
 
 /** y of the thumb centre at the coldest and warmest values. */
@@ -184,7 +188,7 @@ export class ThermalController implements StageController {
       const w = THERMAL.trackHW - 6;
       g.save();
       g.beginPath();
-      g.roundRect(x - w, top, w * 2, bottom - top, w);
+      g.roundRect(x - w, top, w * 2, bottom - top, THERMAL.trackRadius - 6);
       g.clip();
       const col = g.createLinearGradient(0, bottom, 0, top);
       col.addColorStop(0, rgba([0.55, 0.62, 0.98], dark ? 0.45 : 0.62));
@@ -202,7 +206,7 @@ export class ThermalController implements StageController {
       // card atmosphere: soft cloud forms resting beneath the card glass
       g.save();
       g.beginPath();
-      g.roundRect(THERMAL.cardX - THERMAL.cardHW, THERMAL.cy - THERMAL.cardHH, THERMAL.cardHW * 2, THERMAL.cardHH * 2, 34);
+      g.roundRect(THERMAL.cardX - THERMAL.cardHW, THERMAL.cy - THERMAL.cardHH, THERMAL.cardHW * 2, THERMAL.cardHH * 2, THERMAL.cardRadius);
       g.clip();
       [[70, 60, 60], [20, 78, 50], [105, 30, 44]].forEach(([dx, dy, r]) => {
         const c = g.createRadialGradient(THERMAL.cardX + dx, THERMAL.cy + dy, 2, THERMAL.cardX + dx, THERMAL.cy + dy, r);
@@ -229,7 +233,7 @@ export class ThermalController implements StageController {
     });
 
     const above = ctx.paint('thermal-card', (g) => {
-      drawPixels(g, this.icon.states(), THERMAL.cardX - 66, THERMAL.cy, 5, ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk, glow: 3, glowAlpha: 0.45 });
+      drawPixels(g, this.icon.states(), THERMAL.cardX - 66, THERMAL.cy, 5, ctx.pxPerUnit, { gap: DOT_GAP, ink: glassInk(dark), glow: 3, glowAlpha: ledGlow(dark, 0.45) });
     });
 
     // three grip dots on the thumb surface
@@ -256,8 +260,8 @@ export class ThermalController implements StageController {
       layers: [
         {
           shapes: [
-            { cx: THERMAL.trackX, cy: THERMAL.cy, hw: THERMAL.trackHW, hh: THERMAL.trackHH, radius: THERMAL.trackHW, skew: 0, material: track },
-            { cx: THERMAL.cardX, cy: THERMAL.cy, hw: THERMAL.cardHW, hh: THERMAL.cardHH, radius: 34, skew: 0, material: card },
+            { cx: THERMAL.trackX, cy: THERMAL.cy, hw: THERMAL.trackHW, hh: THERMAL.trackHH, radius: THERMAL.trackRadius, skew: 0, material: track },
+            { cx: THERMAL.cardX, cy: THERMAL.cy, hw: THERMAL.cardHW, hh: THERMAL.cardHH, radius: THERMAL.cardRadius, skew: 0, material: card },
           ],
           above,
         },
@@ -268,7 +272,7 @@ export class ThermalController implements StageController {
               cy: ty,
               hw: 52 * d.across,
               hh: 22 * d.along,
-              radius: 22,
+              radius: THERMAL.thumbRadius,
               skew: 0,
               material: thumb,
               edge: this.edge.params(color),

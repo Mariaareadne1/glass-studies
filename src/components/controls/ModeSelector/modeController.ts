@@ -7,7 +7,7 @@ import type { ParticleState } from '../../../pixels/morphAlgorithm';
 import { drawPixels } from '../../../pixels/PixelMorph';
 import { MODES } from '../../../state/controls';
 import type { Mode } from '../../../state/controls';
-import { DOT_GAP, tintedInk } from '../shared/ink';
+import { DOT_GAP, glassTintedInk, ledGlow } from '../shared/ink';
 import { mixRGB, rampRGB, rgba, smoothstep } from '../shared/math';
 import { LIGHT } from '../shared/palette';
 import { SelectorCore } from '../shared/selectorCore';
@@ -197,9 +197,9 @@ export class ModeController implements StageController {
         g.restore();
         drawPixels(g, ledPixels(ICON[MODES[i]]).map((p) => ({ ...p, alpha: 0.85 * cover, size: 1 })), x, MODE.cy, 3.6, ctx.pxPerUnit, {
           gap: DOT_GAP,
-          ink: tintedInk(MODE_COLORS[MODES[i]], 0.18),
+          ink: glassTintedInk(dark, MODE_COLORS[MODES[i]], 0.18),
           glow: 2.5,
-          glowAlpha: 0.35,
+          glowAlpha: ledGlow(dark, 0.35),
         });
       });
     });
@@ -207,12 +207,12 @@ export class ModeController implements StageController {
     const icon = ctx.paint('mode-tile-icon', (g) => {
       drawPixels(g, core.morph.states(), tile.cx, tile.cy, 5.6, ctx.pxPerUnit, {
         gap: DOT_GAP,
-        ink: tintedInk(color, 0.3),
+        ink: glassTintedInk(dark, color, 0.3),
         scaleX: core.deform.along,
         scaleY: core.deform.across,
         map: this.idleMap(),
         glow: 4 + charge * 4,
-        glowAlpha: 0.55,
+        glowAlpha: ledGlow(dark, 0.55),
       });
     });
 

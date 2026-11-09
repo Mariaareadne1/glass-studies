@@ -67,3 +67,20 @@ Issues found and fixed during inspection: thumb overshoot clipping past the rim;
 V1 is preserved at tag `v1-original` (commit `d93527f`). It was served unchanged from a worktree on :5372 during the whole V2 cycle for side-by-side comparison (`scripts/compare.mjs`).
 
 Not verified in V2: physical devices, low-end GPUs, and the full interaction suite on WebKit and Firefox (smoke only, as in V1).
+
+---
+
+## V2.1 material polish QA (2026-11-08, branch `v2.1/material-polish`)
+
+| Check | Result |
+| --- | --- |
+| Type check / lint | ✅ clean / 0 errors (advisory warnings as above) |
+| Unit and component tests | ✅ 62 / 62 (adds `lightMaterial.test.ts`: density, pearl shift, saturated colours spared, no mutation, Midnight untouched) |
+| E2E (production build) | ✅ 17 / 17: Chromium (all six studies: click, drag, keyboard, wheel, touch, rapid reversals), mobile emulation, WebKit and Firefox smoke |
+| Performance (all six animating, DPR 2) | ✅ mean 16.67 ms, p95 / p99 16.8 ms, 0 frames over 33 ms. Loop idle before and after |
+| Visual: Atmosphere and Thermal, rest and mid-transition, V2.0 vs V2.1 | Inspected: `docs/media/v2.1/compare-*.jpg` |
+| Midnight regression | Unchanged apart from the intended geometry (`compare-thermal-midnight.jpg`) |
+| Halo ring removed | ✅ (`compare-halo.jpg`) |
+| Contrast of in-glass type | ✅ 7.5–13.8:1 on Pearl (sampled from screenshots with the DOM text hidden) |
+
+Not verified: physical devices, low-end GPUs, and the full interaction suite on WebKit and Firefox (smoke only).

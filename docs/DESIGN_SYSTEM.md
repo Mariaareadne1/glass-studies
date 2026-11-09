@@ -74,3 +74,38 @@ Shader additions: a narrow top-edge streak at t≈0.17, a lower-wall glint, a sh
 **LED pixel art.** Squares render at 76% of their cell (`DOT_GAP = 0.24`) with inks from `shared/ink.ts`: `lightInk` (white, with the sun kept amber), `tintedInk` (white with a whisper of the mode colour), and `darkWarmInk` (on the creamy day thumb). `ledPixels()` hollows cloud, leaf and petal bodies into line art. Icons sit on the tile surface (the content layer above the glass), so frosted tiles never blur them.
 
 **Pearl palette** (sampled from the reference): page `#F1EFF2`, plinth `#F5F3F6`, lavender `#B3B5D6`, silver `#C4CCDE`, cream `#F9F5F1`. Warm `#FFBC6B`→`#FFA847` and cool `#8C9EFF`→`#9FB8FF` appear only as light.
+
+## V2.1 material polish
+
+**Geometry family.** Shapes stay analytic rounded rectangles with circular corners, so the edge light's perimeter coordinate remains exact on CPU and GPU. A true superellipse would break that. Square logic comes from **concentric radii**: an outer corner equals the inner corner plus the inset between them.
+
+| Surface | Radius | Note |
+| --- | --- | --- |
+| Atmosphere tile | 30 | was 40 |
+| Atmosphere wells | 27 | tile minus the 3-unit well inset |
+| Atmosphere tray | 44 | tile 30 + 14 inset; was a full pill (66) |
+| Thermal housing | 24 | was a full pill (40); inner fill 18 |
+| Thermal thumb | 13 | was 22 (pill) |
+| Thermal card | 28 | was 34 |
+
+Hit targets are unchanged. Focus outlines follow the new radii (`RadioSlots` `slotRadius`).
+
+**Light-mode material** (`src/glass/lightMaterial.ts`, applied in `GlassStage` for every non-Midnight studio, so the Canvas2D fallback gets it too):
+
+| Parameter | Change |
+| --- | --- |
+| Body density (`tint.a`) | ×0.60 for neutral bodies, rising to ×0.95 for saturated state colours (an "on" switch keeps its blue) |
+| Body colour | moved 32% toward pearl `#F6F5FC` (neutral bodies only) |
+| Shadow | ×0.60 |
+| Frost | ×0.80 |
+| Specular | ×1.12 |
+| Milk | ×1.06 (capped at 1.1) |
+
+**Light-only shader terms** (`uEnvKind != midnight`):
+- Absorption is perimeter-weighted, so the centre is clearer.
+- Frost is concentrated in the wall.
+- The far-rim shade drops 60% and the separation ring 70%, so there are no dark outlines.
+- The top streak is narrower and 25% brighter.
+- A delicate glint sits in the lit corner, and a faint internal highlight sweep crosses the body.
+
+**Ink.** Neutral LED pixels and in-glass type use pearl-grey `#4A476B` / `#2C2A40` on light studios; state colours keep their hue. Midnight keeps white. Helpers: `glassInk`, `glassTintedInk`, `ledGlow` in `shared/ink.ts`.

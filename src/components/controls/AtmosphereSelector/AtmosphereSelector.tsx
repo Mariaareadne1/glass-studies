@@ -31,6 +31,7 @@ export function AtmosphereSelector({ env }: { env: EnvironmentKind }) {
         core={ctrl.core}
         slotHW={ATMO.spacing / 2 - 4}
         slotHH={ATMO.trackHH - 4}
+        slotRadius={ATMO.trackRadius - 4}
         name="Weather"
         testid="atmosphere"
         overlayRef={overlayRef}

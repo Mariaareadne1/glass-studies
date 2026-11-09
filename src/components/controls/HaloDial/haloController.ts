@@ -6,7 +6,7 @@ import { EdgeLight } from '../../../motion/edgeLight';
 import { reduced, Spring, SPRINGS } from '../../../motion/spring';
 import { haloSun } from '../../../pixels/iconDefinitions';
 import { drawPixels, PixelMorpher } from '../../../pixels/PixelMorph';
-import { DOT_GAP } from '../shared/ink';
+import { DOT_GAP, ledGlow, pearlInk } from '../shared/ink';
 import { clamp, lerp, mixRGB, rgba } from '../shared/math';
 
 export const HALO = {
@@ -129,28 +129,6 @@ export class HaloController implements StageController {
       bead = smoked(bead, 0.4);
     }
 
-    // a faint orbit of light around the instrument, resting on the studio surface
-    const under = ctx.paint('halo-orbit', (g) => {
-      g.save();
-      g.translate(HALO.cx, HALO.cy + 8);
-      g.rotate(-0.22);
-      g.scale(1, 0.26);
-      const og = g.createLinearGradient(-230, 0, 230, 0);
-      og.addColorStop(0, rgba(WARM_HIGH, 0.0));
-      og.addColorStop(0.18, rgba(WARM_LOW, 0.55 * (0.4 + 0.6 * v)));
-      og.addColorStop(0.55, 'rgba(200,190,255,0.25)');
-      og.addColorStop(0.85, rgba([0.8, 0.85, 1], 0.4));
-      og.addColorStop(1, 'rgba(255,255,255,0)');
-      g.strokeStyle = og;
-      g.lineWidth = 6;
-      g.shadowColor = rgba(WARM_LOW, 0.6);
-      g.shadowBlur = 10 * ctx.pxPerUnit;
-      g.beginPath();
-      g.ellipse(0, 0, 228, 228, 0, 0, Math.PI * 2);
-      g.stroke();
-      g.restore();
-    });
-
     const above = ctx.paint('halo-arc', (g) => {
       const a0 = HALO.startDeg * DEG;
       const a1 = (HALO.startDeg + HALO.sweepDeg) * DEG;
@@ -188,9 +166,9 @@ export class HaloController implements StageController {
       }
       drawPixels(g, this.sun.states(), HALO.cx, HALO.cy - 44, 4.2, ctx.pxPerUnit, {
         gap: DOT_GAP,
-        ink: (c) => mixRGB([1, 1, 1], c, 0.12 * v),
+        ink: dark ? (c) => mixRGB([1, 1, 1], c, 0.12 * v) : pearlInk,
         glow: 3 + 5 * v,
-        glowAlpha: 0.4 + 0.4 * v,
+        glowAlpha: ledGlow(dark, 0.4 + 0.4 * v),
       });
     });
 
@@ -212,7 +190,6 @@ export class HaloController implements StageController {
         brightness: dark ? lerp(0.85, 1.12, v) : lerp(0.9, 1.02, v),
         time: ctx.time,
       },
-      under,
       layers: [
         {
           shapes: [

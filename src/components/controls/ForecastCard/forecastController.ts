@@ -8,7 +8,7 @@ import { drawPixels } from '../../../pixels/PixelMorph';
 import { DAYS } from '../../../state/controls';
 import type { Day } from '../../../state/controls';
 import { FORECAST } from '../../../state/forecastData';
-import { DOT_GAP, lightInk } from '../shared/ink';
+import { DOT_GAP, glassInk, ledGlow } from '../shared/ink';
 import { lerp, mixRGB, rampRGB, rgba } from '../shared/math';
 import { SelectorCore } from '../shared/selectorCore';
 
@@ -169,7 +169,7 @@ export class ForecastController implements StageController {
     });
 
     const above = ctx.paint('fc-icon', (g) => {
-      drawPixels(g, core.morph.states(), FC.cx - FC.hw + 74, FC.top + 112, 5.4, ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk, glow: 3.5, glowAlpha: 0.5 });
+      drawPixels(g, core.morph.states(), FC.cx - FC.hw + 74, FC.top + 112, 5.4, ctx.pxPerUnit, { gap: DOT_GAP, ink: glassInk(dark), glow: 3.5, glowAlpha: ledGlow(dark, 0.5) });
     });
     // tiny LED icons under each day label, resting in the frosted row
     const rowIcons = ctx.paint('fc-row-icons', (g) => {
@@ -177,7 +177,7 @@ export class ForecastController implements StageController {
         const near = 1 - Math.min(1, Math.abs(x - tile.cx) / FC.spacing);
         drawPixels(g, ledPixels(FORECAST[DAYS[i]].icon).map((p) => ({ ...p, alpha: 1, size: 1 })), x, dayY + 11, 1.55, ctx.pxPerUnit, {
           gap: 0.18,
-          ink: near > 0.5 ? (c) => (c[0] > 0.9 && c[2] < 0.55 ? c : [0.42, 0.4, 0.55]) : lightInk,
+          ink: near > 0.5 ? (c) => (c[0] > 0.9 && c[2] < 0.55 ? c : [0.42, 0.4, 0.55]) : glassInk(dark),
         });
       });
     });

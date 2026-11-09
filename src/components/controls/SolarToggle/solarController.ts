@@ -7,7 +7,7 @@ import { EdgeLight } from '../../../motion/edgeLight';
 import { reduced, Spring, SPRINGS } from '../../../motion/spring';
 import { iconPixels } from '../../../pixels/iconDefinitions';
 import { drawPixels, PixelMorpher } from '../../../pixels/PixelMorph';
-import { blendInk, darkWarmInk, DOT_GAP, lightInk } from '../shared/ink';
+import { blendInk, darkWarmInk, DOT_GAP, glassInk, lightInk } from '../shared/ink';
 import { clamp, lerp, mixRGB, rgba, rubber, smoothstep } from '../shared/math';
 import { LIGHT } from '../shared/palette';
 
@@ -165,9 +165,10 @@ export class SolarController implements StageController {
       drawPixels(g, this.morph.states(), tx, SOLAR.cy, 6.6, ctx.pxPerUnit, {
         gap: DOT_GAP,
         // ink follows the morph itself, so the moon never turns dark before it becomes the sun
-        ink: blendInk(lightInk, dark ? lightInk : darkWarmInk, smoothstep(0.55, 0.95, this.morph.progress)),
+        ink: blendInk(glassInk(dark), dark ? lightInk : darkWarmInk, smoothstep(0.55, 0.95, this.morph.progress)),
         glow: (1 - warm) * 4 + (dark ? 3 : 0),
-        glowAlpha: 0.55,
+        // the warm day ink keeps its full glow; on light studios the dark night ink barely glows
+        glowAlpha: dark ? 0.55 : 0.55 * lerp(0.2, 1, smoothstep(0.55, 0.95, this.morph.progress)),
         scaleX: d.along,
         scaleY: d.across,
       });
@@ -197,8 +198,8 @@ export class SolarController implements StageController {
       // faint end-stop glyphs inside the capsule, fading as the thumb covers them
       const fade = (x: number) => smoothstep(SOLAR.thumb * 0.6, SOLAR.thumb * 1.6, Math.abs(tx - x));
       const a = 0.55;
-      drawPixels(g, iconPixels('moon').map((px) => ({ ...px, alpha: a * fade(X0), size: 1 })), X0, SOLAR.cy, 3, ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk });
-      drawPixels(g, iconPixels('sun').map((px) => ({ ...px, alpha: a * fade(X1), size: 1 })), X1, SOLAR.cy, 3, ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk });
+      drawPixels(g, iconPixels('moon').map((px) => ({ ...px, alpha: a * fade(X0), size: 1 })), X0, SOLAR.cy, 3, ctx.pxPerUnit, { gap: DOT_GAP, ink: glassInk(dark) });
+      drawPixels(g, iconPixels('sun').map((px) => ({ ...px, alpha: a * fade(X1), size: 1 })), X1, SOLAR.cy, 3, ctx.pxPerUnit, { gap: DOT_GAP, ink: glassInk(dark) });
       // motion echoes: the icon leaves a short dotted wake while the thumb travels
       if (!this.reducedMotion && speed > 0.4) {
         const dir = Math.sign(this.pos.v);
@@ -206,7 +207,7 @@ export class SolarController implements StageController {
           const ex = tx - dir * k * 34;
           const a2 = Math.min(1, (speed - 0.4) / 3) * (0.42 - k * 0.11);
           if (a2 <= 0) continue;
-          drawPixels(g, this.morph.states().map((px) => ({ ...px, alpha: px.alpha * a2 })), ex, SOLAR.cy, 6.6 * (1 - k * 0.14), ctx.pxPerUnit, { gap: DOT_GAP, ink: lightInk });
+          drawPixels(g, this.morph.states().map((px) => ({ ...px, alpha: px.alpha * a2 })), ex, SOLAR.cy, 6.6 * (1 - k * 0.14), ctx.pxPerUnit, { gap: DOT_GAP, ink: glassInk(dark) });
         }
       }
     });

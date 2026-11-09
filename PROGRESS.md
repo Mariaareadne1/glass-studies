@@ -1,5 +1,11 @@
 # Progress
 
+## V2.1 material polish (branch v2.1/material-polish)
+- Removed Halo's decorative orbit ring (the only ring ornament in the build).
+- Rounded-square geometry: Atmosphere tray/tile/wells (radii 44/30/27, concentric) and Thermal housing/thumb/card (24/13/28); focus outlines follow.
+- Light studios: central pearl material pass (`src/glass/lightMaterial.ts`) plus light-only shader terms; in-glass type and neutral LED icons switch to pearl-grey ink. Midnight unchanged.
+- Before/after media in docs/media/v2.1/ (V2.0 tag served from worktree ../glass-studies-v20 on :5374).
+
 ## V2 "Pearl Optics" (branch v2/pearl-optics)
 - **A Baseline:** V1 tagged `v1-original` (d93527f), served from worktree ../glass-studies-v1 on :5372. V2 dev on :5373 / preview :4373. Gap analysis in docs/V2_VISUAL_COMPARISON.md.
 - **B Material:** depth-weighted absorption body, milky directional rim, top-edge streak, spectral rim fringe, coloured halos and edge bloom, cool soft shadows, hover attention, pearl environment, LED dot-matrix pixels.
