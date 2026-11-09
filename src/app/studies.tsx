@@ -12,8 +12,11 @@ import { DriftPad } from '../components/controls/DriftPad/DriftPad';
 import { RangeBeads } from '../components/controls/RangeBeads/RangeBeads';
 import { atmosphereStore, driftStore, dropletStore, forecastDayStore, forecastDetailStore, haloStore, irisStore, modeStore, rangeStore, solarStore, thermalStore } from '../state/controls';
 
+export type StudyGroup = 'originals' | 'controls' | 'loaders' | 'optics';
+
 export interface StudyDef {
   id: string;
+  group: StudyGroup;
   num: string;
   title: string;
   description: string;
@@ -22,11 +25,14 @@ export interface StudyDef {
   Component: ComponentType<{ env: EnvironmentKind }>;
   /** Stores reset by the focused view's "Reset study". */
   stores: { reset(): void }[];
+  /** What the study genuinely does, listed in the focused view (e.g. "Refraction", "Camera"). */
+  capabilities?: string[];
 }
 
 export const STUDIES: StudyDef[] = [
   {
     id: 'solar',
+    group: 'originals',
     num: '01',
     title: 'Solar',
     description: 'A day and night toggle. The glass tile stretches as it travels while the moon breaks into squares that settle into a sun.',
@@ -38,6 +44,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'atmosphere',
+    group: 'originals',
     num: '02',
     title: 'Atmosphere',
     description: 'A four-position weather selector. One liquid tile stretches between slots while sun rays break into rain, drift into wind and crystallise into snow.',
@@ -49,6 +56,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'halo',
+    group: 'originals',
     num: '03',
     title: 'Halo',
     description: 'A circular brightness dial. The arc, the glass bead, the sun’s rays and the light on the surface all follow one value.',
@@ -60,6 +68,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'thermal',
+    group: 'originals',
     num: '04',
     title: 'Thermal',
     description: 'A vertical temperature slider. The thumb tracks your finger exactly; the capsule, the card and the air warm with it.',
@@ -71,6 +80,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'modes',
+    group: 'originals',
     num: '05',
     title: 'Modes',
     description: 'Four modes, each with its own small animation: a leaf bends, a bolt charges, stars drift, a bud opens.',
@@ -82,6 +92,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'forecast',
+    group: 'originals',
     num: '06',
     title: 'Forecast',
     description: 'A compound weather card with three layers of glass: a day selector, a detail toggle that resizes the card, and a changing sky.',
@@ -93,6 +104,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'iris',
+    group: 'controls',
     num: '07',
     title: 'Iris',
     description: 'An aperture dial. Turn the glass ring and seven blades close over a small sun; the f-number scale rides past a fixed index and clicks into each stop.',
@@ -104,6 +116,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'droplet',
+    group: 'controls',
     num: '08',
     title: 'Droplet',
     description: 'A press-and-hold button. The glass drop flattens and spreads under your finger while water rises inside; hold to the top and it releases.',
@@ -115,6 +128,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'drift',
+    group: 'controls',
     num: '09',
     title: 'Drift',
     description: 'A two-axis mood pad. Throw the glass puck and it drifts across a calm-to-lively, cool-to-warm field, slows with friction and bounces softly off the walls.',
@@ -126,6 +140,7 @@ export const STUDIES: StudyDef[] = [
   },
   {
     id: 'beads',
+    group: 'controls',
     num: '10',
     title: 'Beads',
     description: 'A dual range for active hours. Two glass beads slide along one track; as they approach, a thin bridge of glass grows between them, as if they were about to merge.',

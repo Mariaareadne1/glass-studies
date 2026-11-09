@@ -164,8 +164,9 @@ export class WebGLGlassRenderer implements GlassRenderer {
     return true;
   }
 
-  private setShapes(shapes: GlassShape[]): void {
+  private setShapes(shapes: GlassShape[], union = 0): void {
     const gl = this.gl;
+    gl.uniform1f(this.u('uUnionK'), Math.max(0, union));
     const n = Math.min(shapes.length, MAX_SHAPES_PER_LAYER);
     const a = (k: number) => new Float32Array(MAX_SHAPES_PER_LAYER * k);
     const geom = a(4), geom2 = a(4), mat = a(4), tint = a(4), glow = a(4), mat2 = a(4), edge = a(4), edge2 = a(4);
@@ -195,8 +196,9 @@ export class WebGLGlassRenderer implements GlassRenderer {
     gl.uniform4fv(this.u('uEdge2'), edge2);
   }
 
-  private setShadows(shapes: GlassShape[] | undefined): void {
+  private setShadows(shapes: GlassShape[] | undefined, union = 0): void {
     const gl = this.gl;
+    gl.uniform1f(this.u('uShadowUnionK'), Math.max(0, union));
     const list = (shapes ?? []).slice(0, MAX_SHAPES_PER_LAYER);
     const g = new Float32Array(MAX_SHAPES_PER_LAYER * 4);
     const g2 = new Float32Array(MAX_SHAPES_PER_LAYER * 4);
@@ -245,8 +247,8 @@ export class WebGLGlassRenderer implements GlassRenderer {
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, read < 0 ? null : this.targets[read].tex);
       gl.uniform1i(this.u('uIsEnv'), p === 0 ? 1 : 0);
-      this.setShapes(p === 0 ? [] : layers[p - 1].shapes);
-      this.setShadows(layers[p]?.shapes);
+      this.setShapes(p === 0 ? [] : layers[p - 1].shapes, p === 0 ? 0 : layers[p - 1].union);
+      this.setShadows(layers[p]?.shapes, layers[p]?.union);
       const content = p === 0 ? scene.under : layers[p - 1].above;
       const has = this.uploadContent(p, content);
       gl.uniform1i(this.u('uHasContent'), has ? 1 : 0);

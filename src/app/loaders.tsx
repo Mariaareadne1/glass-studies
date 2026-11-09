@@ -5,6 +5,7 @@ import type { StudyDef } from './studies';
 export const LOADERS: StudyDef[] = [
   {
     id: 'loader-morph',
+    group: 'loaders',
     num: 'L1',
     title: 'Pixel Morph',
     description: 'A glass tile whose LED icon rebuilds itself square by square: dots, hourglass, diamond, drop. A light laps the rim once per beat.',
@@ -15,6 +16,7 @@ export const LOADERS: StudyDef[] = [
   },
   {
     id: 'loader-tide',
+    group: 'loaders',
     num: 'L2',
     title: 'Tide Fill',
     description: 'A glass vessel slowly fills and drains. The surface sways, a bright meniscus clings to the wall and small LED bubbles rise.',
@@ -25,6 +27,7 @@ export const LOADERS: StudyDef[] = [
   },
   {
     id: 'loader-orbit',
+    group: 'loaders',
     num: 'L3',
     title: 'Orbit',
     description: 'A glass bead laps a central lens, quickening and easing once per lap and leaving a comet of light behind it.',
@@ -35,6 +38,7 @@ export const LOADERS: StudyDef[] = [
   },
   {
     id: 'loader-crystal',
+    group: 'loaders',
     num: 'L4',
     title: 'Crystallize',
     description: 'Frost grows ring by ring into an LED snow crystal, sparkles, then melts and falls away; the glass fogs and clears with it.',

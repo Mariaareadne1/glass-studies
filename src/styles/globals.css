@@ -949,7 +949,7 @@ button {
 }
 
 /* ---------------------------------------------------------------- Glass Loaders section */
-.loaders {
+.collection {
   margin-top: clamp(3.5rem, 7vw, 6rem);
   padding-top: clamp(2rem, 4vw, 3rem);
   border-top: 1px solid var(--line);
@@ -978,41 +978,184 @@ button {
   line-height: 1.5;
 }
 
-.gallery--loaders {
+.gallery--compact {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(1.25rem, 2.4vw, 2rem) clamp(1rem, 2vw, 1.75rem);
 }
 
-.gallery--loaders .plinth {
+.gallery--compact .plinth {
   border-radius: 24px;
 }
 
-.gallery--loaders .caption__desc {
+.gallery--compact .caption__desc {
   font-size: 0.9rem;
 }
 
 @media (max-width: 1100px) {
-  .gallery--loaders {
+  .gallery--compact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 520px) {
-  .gallery--loaders {
+  .gallery--compact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem 0.75rem;
   }
-  .gallery--loaders .caption__desc,
-  .gallery--loaders .caption__hint {
+  .gallery--compact .caption__desc,
+  .gallery--compact .caption__hint {
     display: none;
   }
-  .gallery--loaders .caption__title {
+  .gallery--compact .caption__title {
     font-size: 0.78rem;
     letter-spacing: 0.12em;
     overflow-wrap: anywhere;
   }
 }
 
-.gallery--loaders .caption__title {
+.gallery--compact .caption__title {
   letter-spacing: 0.2em;
+}
+
+/* ---------------------------------------------------------------- V3 collections, transport, study controls */
+.collection:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.focus {
+  overflow-y: auto;
+}
+
+.loader-stage,
+.instrument {
+  position: relative;
+}
+
+/* focused views with a control row give the stage a little less height */
+.focus__frame:has(.transport),
+.focus__frame:has(.study-controls) {
+  width: min(100%, 1080px, calc((100dvh - 300px) * 640 / 440));
+  min-width: min(100%, 560px);
+}
+
+.transport,
+.study-controls {
+  display: grid;
+  gap: 10px;
+  padding: 12px 18px 14px;
+  background: var(--plinth);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.transport__row,
+.study-controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.transport .chip-row,
+.study-controls .chip-row {
+  background: var(--line);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+}
+
+.transport > .transport__row > .chip,
+.study-controls__row > .chip {
+  background: var(--line);
+}
+
+.transport__progress,
+.study-controls__field {
+  display: grid;
+  grid-template-columns: auto 1fr 3.2rem;
+  align-items: center;
+  gap: 12px;
+}
+
+.transport__progress output,
+.study-controls__field output {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink-1, var(--ink));
+}
+
+.transport input[type='range'],
+.study-controls input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink-2);
+}
+
+.plinth__pause {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--plinth) 70%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--ink-2);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity var(--dur) var(--ease-out);
+}
+
+.plinth:hover .plinth__pause,
+.plinth__pause:focus-visible,
+.plinth__pause[aria-pressed='true'] {
+  opacity: 1;
+}
+
+.capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capabilities li {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.6rem;
+}
+
+.file-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.file-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.study-status {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-2);
+}
+
+.study-status[data-tone='error'] {
+  color: var(--danger, #b4434f);
 }

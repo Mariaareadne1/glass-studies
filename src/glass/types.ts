@@ -90,6 +90,12 @@ export interface GlassLayer {
   shapes: GlassShape[];
   /** Content painted above this layer's glass and below the next layer. */
   above?: ContentLayer;
+  /**
+   * When > 0 the layer's shapes fuse into ONE optical surface (polynomial
+   * smooth-min of their distance fields, fillet width in design units). The
+   * refraction normal, highlights and contact shadow follow the fused field.
+   */
+  union?: number;
 }
 
 export interface GlassScene {

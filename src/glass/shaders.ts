@@ -47,11 +47,13 @@ uniform vec4 uGlow[MAXS];
 uniform vec4 uMat2[MAXS];   // shadow, exposure, milk (rim), halo (outer glow)
 uniform vec4 uEdge[MAXS];   // head, intensity, direction, width
 uniform vec4 uEdge2[MAXS];  // rgb, trail
+uniform float uUnionK;      // > 0: shapes fuse into one surface with this fillet width
 
 // shadows of the next layer
 uniform int uShadowCount;
 uniform vec4 uSGeom[MAXS];
 uniform vec4 uSGeom2[MAXS]; // radius, skew, opacity, softness
+uniform float uShadowUnionK;
 
 // content composited at the end of the pass
 uniform int uHasContent;
@@ -198,30 +200,59 @@ vec3 sampleFrost(vec2 dDesign, float radius) {
   return acc / w;
 }
 
-vec3 applyGlass(int i, vec2 d, vec3 base) {
-  vec4 g = uGeom[i];
-  vec4 g2 = uGeom2[i];
-  vec2 h = g.zw;
-  float r = min(g2.x, min(h.x, h.y));
-  vec2 lp = vec2(d.x - g.x, -(d.y - g.y));   // local, y up
-  lp.x -= g2.y * lp.y;                      // lean
-  float sd = sdRR(lp, h, r);
+struct Mat {
+  vec4 m;     // refraction, frost, aberration, specular
+  vec4 tint;
+  vec4 glow;
+  vec4 m2;    // shadow, exposure, milk, halo
+  float bevel;
+  float thick;
+  vec4 e;     // edge: head, intensity, direction, width
+  vec4 e2;    // edge: rgb, trail
+};
 
-  vec4 e = uEdge[i];
-  vec4 e2 = uEdge2[i];
-  float edgeOn = e.y * uTune2.x;
-  float haloAmt = uMat2[i].w * uGlow[i].a * uTune3.y;
+Mat matOf(int i) {
+  return Mat(uMat[i], uTint[i], uGlow[i], uMat2[i], uGeom2[i].z, uGeom2[i].w, uEdge[i], uEdge2[i]);
+}
+
+Mat mixMat(Mat a, Mat b, float k) {
+  return Mat(mix(a.m, b.m, k), mix(a.tint, b.tint, k), mix(a.glow, b.glow, k), mix(a.m2, b.m2, k),
+             mix(a.bevel, b.bevel, k), mix(a.thick, b.thick, k), a.e, a.e2);
+}
+
+// signed distance of shape i at design point d; also returns its local frame
+float shapeSd(int i, vec2 d, out vec2 lp, out vec2 h, out float r) {
+  vec4 g = uGeom[i];
+  h = g.zw;
+  r = min(uGeom2[i].x, min(h.x, h.y));
+  lp = vec2(d.x - g.x, -(d.y - g.y));   // local, y up
+  lp.x -= uGeom2[i].y * lp.y;          // lean
+  return sdRR(lp, h, r);
+}
+
+// polynomial smooth minimum: a single continuous surface with a fillet of width k
+float smin(float a, float b, float k) {
+  float hh = max(k - abs(a - b), 0.0) / k;
+  return min(a, b) - hh * hh * k * 0.25;
+}
+
+/**
+ * Shades one optical surface. sd and outward describe the surface (from a
+ * single shape or from a fused union), lp/h/r the frame of the nearest shape
+ * (used for perimeter-locked effects), skew its lean.
+ */
+vec3 shade(vec2 d, vec3 base, float sd, vec2 outward, vec2 lp, vec2 h, float r, float skew, Mat M) {
+  float edgeOn = M.e.y * uTune2.x;
+  float haloAmt = M.m2.w * M.glow.a * uTune3.y;
   if (sd > (haloAmt > 0.001 || edgeOn > 0.001 ? 70.0 : 16.0)) return base;
 
   float px = 1.0 / uScale;
   float inside = 1.0 - smoothstep(-0.7 * px, 0.7 * px, sd);
-
   vec3 col = base;
-  vec2 outward = outwardRR(lp, h, r);
 
   if (inside > 0.0) {
-    float bevel = max(g2.z * uTune2.z, 1.0);
-    float thick = g2.w * uTune2.w;
+    float bevel = max(M.bevel * uTune2.z, 1.0);
+    float thick = M.thick * uTune2.w;
     float depth = max(-sd, 0.0);
     float t = clamp(depth / bevel, 0.0, 1.0);
     float om = 1.0 - t;
@@ -233,16 +264,16 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     vec3 n3 = normalize(vec3(outward * s, 1.0));
     vec3 rr = refract(vec3(0.0, 0.0, -1.0), n3, 1.0 / 1.52);
     float travel = thick * (0.35 + 0.65 * hgt);
-    vec2 disp = rr.xy / max(-rr.z, 0.25) * travel * uMat[i].x * uTune.x;
+    vec2 disp = rr.xy / max(-rr.z, 0.25) * travel * M.m.x * uTune.x;
     disp.y = -disp.y; // back to design space (y down)
     // the lean is part of the geometry: shear the displacement with it
-    disp.x += g2.y * -disp.y;
+    disp.x += skew * -disp.y;
 
     // V2.1: on light studios the glass is clearer in the centre and keeps its
     // optical activity (frost, absorption) near the perimeter
     float pearl = uEnvKind == 1 ? 0.0 : 1.0;
-    float ab = uMat[i].z * uTune.z;
-    float frost = uMat[i].y * uTune.y * mix(0.35 + 0.65 * om, 0.18 + 0.82 * om, pearl) * 7.0;
+    float ab = M.m.z * uTune.z;
+    float frost = M.m.y * uTune.y * mix(0.35 + 0.65 * om, 0.18 + 0.82 * om, pearl) * 7.0;
     vec3 refr;
     refr.r = sampleFrost(d + disp * (1.0 - 0.35 * ab), frost).r;
     refr.g = sampleFrost(d + disp, frost).g;
@@ -256,12 +287,12 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
 
     // Body: the slab absorbs and scatters toward its body colour, more where it is
     // deepest – a calm, tinted centre framed by a bright, thin-walled rim.
-    vec4 tint = uTint[i];
+    vec4 tint = M.tint;
     float absorb = tint.a * mix(0.30 + 0.70 * hgt, 0.42 + 0.30 * om, pearl);
     refr = mix(refr, refr * (tint.rgb * 1.1), absorb * 0.8);
     refr = mix(refr, tint.rgb, absorb * 0.6);
-    refr *= uMat2[i].y;
-    vec4 gl = uGlow[i];
+    refr *= M.m2.y;
+    vec4 gl = M.glow;
     refr = screenBlend(refr, gl.rgb * gl.a * (0.30 + 0.70 * hgt));
 
     // lighting
@@ -269,14 +300,14 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     vec2 Ld = normalize(L.xy);
     float facing = dot(outward, Ld);
     float att = 1.0 + 0.35 * uAttention;
-    float specK = uMat[i].w * uTune.w * att;
+    float specK = M.m.w * uTune.w * att;
     vec3 refv = reflect(vec3(0.0, 0.0, -1.0), n3);
     float spec = pow(max(dot(refv, L), 0.0), 60.0) * specK;
     float rimLit = fres * (0.50 * max(facing, 0.0) + 0.20 * max(-facing, 0.0));
     float rimShade = fres * (0.08 + 0.12 * max(-facing, 0.0)) * (1.0 - 0.6 * pearl);
 
     // milky rim: the thick wall scatters light; brighter toward the key light
-    float milk = uMat2[i].z * uTune3.x;
+    float milk = M.m2.z * uTune3.x;
     float band = 1.0 - smoothstep(0.0, 0.46, t);
     float lit = 0.28 + 0.72 * pow(facing * 0.5 + 0.5, 1.4);
     refr = screenBlend(refr, vec3(1.0, 0.995, 1.0) * milk * band * band * lit * 0.6);
@@ -293,13 +324,13 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
     float sweep = pearl * exp(-pow((dot(lp / h, vec2(0.62, 0.78)) - 0.42) / 0.09, 2.0)) * hgt * 0.014;
     // a soft secondary reflection on the lower wall
     float lowGlint = exp(-pow((t - 0.22) / 0.12, 2.0)) * smoothstep(0.2, 0.9, -outward.y) * 0.35;
-    float sheen = 0.05 * smoothstep(-0.1, 1.0, lp.y / h.y) * hgt * uMat[i].w;
+    float sheen = 0.05 * smoothstep(-0.1, 1.0, lp.y / h.y) * hgt * M.m.w;
     // light focused through the slab pools on the rim opposite the light
     vec3 caustic = (gl.rgb * gl.a * 2.2 + 0.08) * fres * max(-facing, 0.0) * 0.5;
     // restrained spectral fringe confined to the rim wall (cyan / lilac / peach)
     float uu = perimU(lp, h, r);
     vec3 film = 0.5 + 0.5 * cos(6.2831 * (uu * 2.0 + facing * 0.3 + vec3(0.55, 0.78, 0.0)));
-    float fringe = exp(-pow((t - 0.08) / 0.07, 2.0)) * (0.5 + 0.5 * abs(outward.x)) * uMat[i].z * uTune.z;
+    float fringe = exp(-pow((t - 0.08) / 0.07, 2.0)) * (0.5 + 0.5 * abs(outward.x)) * M.m.z * uTune.z;
     vec3 rimCol = mix(vec3(1.0), film, 0.35);
     refr = refr * (1.0 - rimShade) + vec3(spec * 0.9 + sheen) + vec3(streak * 0.62 + lowGlint + glint + sweep) * specK
          + rimCol * rimLit * 0.5 + caustic + (film - 0.45) * fringe * 0.28;
@@ -309,14 +340,13 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
 
     // traveling edge light: inner band
     if (edgeOn > 0.001) {
-      float u = perimU(lp, h, r);
-      float dl = fract(u - e.x + 0.5) - 0.5;
-      float along = dl * e.z;
-      float core = exp(-pow(dl / max(e.w, 1e-3), 2.0));
-      float trailv = along < 0.0 ? exp(along / max(e2.w, 1e-3)) * 0.6 : 0.0;
+      float dl = fract(uu - M.e.x + 0.5) - 0.5;
+      float along = dl * M.e.z;
+      float core = exp(-pow(dl / max(M.e.w, 1e-3), 2.0));
+      float trailv = along < 0.0 ? exp(along / max(M.e2.w, 1e-3)) * 0.6 : 0.0;
       float k = max(core, trailv) * edgeOn;
       float bandE = exp(-depth / (bevel * 0.22));
-      refr = screenBlend(refr, mix(e2.rgb, vec3(1.0), 0.35 * core) * k * bandE * 1.35);
+      refr = screenBlend(refr, mix(M.e2.rgb, vec3(1.0), 0.35 * core) * k * bandE * 1.35);
     }
     col = mix(base, refr, inside);
   }
@@ -324,23 +354,73 @@ vec3 applyGlass(int i, vec2 d, vec3 base) {
   if (sd > 0.0) {
     // luminous halo of lit glass (e.g. the sunlit thumb): soft colour spill outside
     if (haloAmt > 0.001) {
-      vec4 gl = uGlow[i];
-      // coloured light, not white haze: tint toward the glow colour, then lift
+      vec4 gl = M.glow;
       float k = haloAmt * (exp(-sd / 7.0) * 0.55 + exp(-sd / 26.0) * 0.45);
       col = mix(col, col * gl.rgb * 1.04 + gl.rgb * 0.12, clamp(k, 0.0, 1.0));
     }
     // bloom of the traveling edge light, following the same perimeter coordinate
     if (edgeOn > 0.001) {
       float u = perimU(lp, h, r);
-      float dl = fract(u - e.x + 0.5) - 0.5;
-      float along = dl * e.z;
-      float core = exp(-pow(dl / max(e.w * 1.5, 1e-3), 2.0));
-      float trailv = along < 0.0 ? exp(along / max(e2.w, 1e-3)) * 0.45 : 0.0;
+      float dl = fract(u - M.e.x + 0.5) - 0.5;
+      float along = dl * M.e.z;
+      float core = exp(-pow(dl / max(M.e.w * 1.5, 1e-3), 2.0));
+      float trailv = along < 0.0 ? exp(along / max(M.e2.w, 1e-3)) * 0.45 : 0.0;
       float k = max(core, trailv) * edgeOn * (exp(-sd / 3.0) * 0.6 + exp(-sd / 12.0) * 0.35 * uTune3.y);
-      col = mix(col, col * e2.rgb + e2.rgb * 0.5, clamp(k, 0.0, 1.0));
+      col = mix(col, col * M.e2.rgb + M.e2.rgb * 0.5, clamp(k, 0.0, 1.0));
     }
   }
   return col;
+}
+
+vec3 applyGlass(int i, vec2 d, vec3 base) {
+  vec2 lp, h;
+  float r;
+  float sd = shapeSd(i, d, lp, h, r);
+  return shade(d, base, sd, outwardRR(lp, h, r), lp, h, r, uGeom2[i].y, matOf(i));
+}
+
+// combined smooth-union distance of every shape in the pass
+float unionSd(vec2 d) {
+  vec2 lp, h;
+  float r;
+  float acc = 1e5;
+  for (int i = 0; i < MAXS; i++) {
+    if (i >= uCount) break;
+    acc = smin(acc, shapeSd(i, d, lp, h, r), uUnionK);
+  }
+  return acc;
+}
+
+/**
+ * Fused layer: all shapes form ONE continuous optical surface. Refraction,
+ * highlights and the hairline all follow the gradient of the combined field,
+ * so the liquid neck between two bodies bends light like the bodies do.
+ */
+vec3 applyUnion(vec2 d, vec3 base) {
+  float sd = unionSd(d);
+  if (sd > 70.0) return base;
+  // nearest and second-nearest shapes, for the material blend and local frame
+  int n0 = 0;
+  float s0 = 1e5, s1 = 1e5;
+  int n1 = 0;
+  vec2 lp0 = vec2(0.0), h0 = vec2(1.0);
+  float r0 = 0.0;
+  for (int i = 0; i < MAXS; i++) {
+    if (i >= uCount) break;
+    vec2 lp, h;
+    float r;
+    float si = shapeSd(i, d, lp, h, r);
+    if (si < s0) { s1 = s0; n1 = n0; s0 = si; n0 = i; lp0 = lp; h0 = h; r0 = r; }
+    else if (si < s1) { s1 = si; n1 = i; }
+  }
+  float e = 0.75 / uScale + 0.25;
+  // gradient in design space (y down) -> outward in local y-up frame
+  vec2 gr = vec2(unionSd(d + vec2(e, 0.0)) - unionSd(d - vec2(e, 0.0)),
+                 unionSd(d + vec2(0.0, e)) - unionSd(d - vec2(0.0, e)));
+  vec2 outward = length(gr) > 1e-5 ? normalize(vec2(gr.x, -gr.y)) : vec2(0.0, 1.0);
+  Mat M = matOf(n0);
+  if (uCount > 1) M = mixMat(M, matOf(n1), 0.5 * (1.0 - smoothstep(0.0, uUnionK, s1 - s0)));
+  return shade(d, base, sd, outward, lp0, h0, r0, 0.0, M);
 }
 
 float shadowOf(int i, vec2 d) {
@@ -358,6 +438,27 @@ float shadowOf(int i, vec2 d) {
   return clamp((broad * 0.55 + tight * 0.35) * g2.z, 0.0, 1.0);
 }
 
+// one soft shadow under a fused layer, so the neck casts shadow too
+float unionShadow(vec2 d) {
+  float acc = 1e5, accT = 1e5, soft = 0.0, op = 0.0;
+  for (int i = 0; i < MAXS; i++) {
+    if (i >= uShadowCount) break;
+    vec4 g = uSGeom[i];
+    vec4 g2 = uSGeom2[i];
+    float si = max(g2.w * uTune2.y, 0.5);
+    float r = min(g2.x, min(g.z, g.w));
+    vec2 lp = vec2(d.x - g.x, -(d.y - g.y - si * 0.45));
+    vec2 lp2 = vec2(d.x - g.x, -(d.y - g.y - 1.5));
+    acc = smin(acc, sdRR(lp, g.zw * vec2(0.97, 0.95), r), uShadowUnionK);
+    accT = smin(accT, sdRR(lp2, g.zw, r), uShadowUnionK);
+    soft = max(soft, si);
+    op = max(op, g2.z);
+  }
+  float broad = 1.0 - smoothstep(-soft * 1.2, soft * 2.0, acc);
+  float tight = exp(-max(accT, 0.0) / 2.2) * step(0.0, accT + 2.0);
+  return clamp((broad * 0.55 + tight * 0.35) * op, 0.0, 1.0);
+}
+
 void main() {
   vec2 fc = gl_FragCoord.xy;
   vec2 d = vec2(fc.x, uRes.y - fc.y) / uScale;  // design units, y down
@@ -366,15 +467,21 @@ void main() {
     col = envColor(d);
   } else {
     col = texture(uPrev, fc / uRes).rgb;
-    for (int i = 0; i < MAXS; i++) {
-      if (i >= uCount) break;
-      col = applyGlass(i, d, col);
+    if (uUnionK > 0.0 && uCount > 0) col = applyUnion(d, col);
+    else {
+      for (int i = 0; i < MAXS; i++) {
+        if (i >= uCount) break;
+        col = applyGlass(i, d, col);
+      }
     }
   }
   float sh = 0.0;
-  for (int i = 0; i < MAXS; i++) {
-    if (i >= uShadowCount) break;
-    sh = max(sh, shadowOf(i, d));
+  if (uShadowUnionK > 0.0) sh = unionShadow(d);
+  else {
+    for (int i = 0; i < MAXS; i++) {
+      if (i >= uShadowCount) break;
+      sh = max(sh, shadowOf(i, d));
+    }
   }
   col *= 1.0 - sh * vec3(0.26, 0.26, 0.19); // cool lavender-grey shadow
   if (uHasContent == 1) {

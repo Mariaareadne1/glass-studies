@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PresentationContext } from '../../app/presentation';
 import type { StudyDef } from '../../app/studies';
 import type { Theme } from '../../app/theme';
 import type { EnvironmentKind } from '../../glass/types';
@@ -57,11 +58,22 @@ export function FocusView({ study, theme, onClose }: FocusViewProps) {
       </div>
       <div className="focus__stage">
         <div className="focus__frame">
-          <study.Component env={env} />
+          <PresentationContext.Provider value="focus">
+            <study.Component env={env} />
+          </PresentationContext.Provider>
         </div>
       </div>
       <div className="focus__foot">
-        <p>{study.detail}</p>
+        <div>
+          <p>{study.detail}</p>
+          {study.capabilities && study.capabilities.length > 0 && (
+            <ul className="capabilities" aria-label="What this study does">
+              {study.capabilities.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          )}
+        </div>
         {study.stores.length > 0 && (
           <button type="button" className="text-button" onClick={() => study.stores.forEach((s) => s.reset())}>
             Reset study
