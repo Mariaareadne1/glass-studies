@@ -6,7 +6,11 @@ import { ForecastCard } from '../components/controls/ForecastCard/ForecastCard';
 import { HaloDial } from '../components/controls/HaloDial/HaloDial';
 import { ModeSelector } from '../components/controls/ModeSelector/ModeSelector';
 import { ThermalSlider } from '../components/controls/ThermalSlider/ThermalSlider';
-import { atmosphereStore, forecastDayStore, forecastDetailStore, haloStore, modeStore, solarStore, thermalStore } from '../state/controls';
+import { IrisDial } from '../components/controls/IrisDial/IrisDial';
+import { DropletPress } from '../components/controls/DropletPress/DropletPress';
+import { DriftPad } from '../components/controls/DriftPad/DriftPad';
+import { RangeBeads } from '../components/controls/RangeBeads/RangeBeads';
+import { atmosphereStore, driftStore, dropletStore, forecastDayStore, forecastDetailStore, haloStore, irisStore, modeStore, rangeStore, solarStore, thermalStore } from '../state/controls';
 
 export interface StudyDef {
   id: string;
@@ -86,5 +90,49 @@ export const STUDIES: StudyDef[] = [
       'Sample data only; there is no weather service. The card height is a spring, and every nested glass surface is derived from it each frame, so refraction and highlights stay attached while it resizes.',
     Component: ForecastCard,
     stores: [forecastDayStore, forecastDetailStore],
+  },
+  {
+    id: 'iris',
+    num: '07',
+    title: 'Iris',
+    description: 'An aperture dial. Turn the glass ring and seven blades close over a small sun; the f-number scale rides past a fixed index and clicks into each stop.',
+    hint: 'Turn the ring · wheel or arrow keys when focused',
+    detail:
+      'The ring is turned, not pointed at: rotation is accumulated from your hand, so you can grip anywhere. Release projects the ring forward by its angular speed and settles into the nearest of eight detents, each passed detent sending a click of light around the rim.',
+    Component: IrisDial,
+    stores: [irisStore],
+  },
+  {
+    id: 'droplet',
+    num: '08',
+    title: 'Droplet',
+    description: 'A press-and-hold button. The glass drop flattens and spreads under your finger while water rises inside; hold to the top and it releases.',
+    hint: 'Press and hold the drop · or hold Space / Enter',
+    detail:
+      'Holding fills the drop over 0.9 s and confirms the moment it is full, even before you let go. Let go early and the water drains back. Pressure is a spring that overshoots on release, so the drop bounces back into shape.',
+    Component: DropletPress,
+    stores: [dropletStore],
+  },
+  {
+    id: 'drift',
+    num: '09',
+    title: 'Drift',
+    description: 'A two-axis mood pad. Throw the glass puck and it drifts across a calm-to-lively, cool-to-warm field, slows with friction and bounces softly off the walls.',
+    hint: 'Drag or throw the puck · arrow keys when focused',
+    detail:
+      'While held, the puck follows the hand exactly. On release it keeps the hand’s velocity, decays exponentially and loses 58% of its speed at each wall, compressing against it on a spring. Its icon re-forms when it crosses into another quadrant of the field.',
+    Component: DriftPad,
+    stores: [driftStore],
+  },
+  {
+    id: 'beads',
+    num: '10',
+    title: 'Beads',
+    description: 'A dual range for active hours. Two glass beads slide along one track; as they approach, a thin bridge of glass grows between them, as if they were about to merge.',
+    hint: 'Drag either bead · arrow keys in half hours',
+    detail:
+      'Beads never cross and always keep at least two hours apart, where they just touch. Each bead sits exactly under the hand and stretches with its speed; keyboard steps glide on a stiff spring. The bridge is a third glass slab whose thickness follows the distance between the beads.',
+    Component: RangeBeads,
+    stores: [rangeStore],
   },
 ];

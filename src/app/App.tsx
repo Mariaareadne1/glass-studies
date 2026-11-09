@@ -40,7 +40,7 @@ export function App() {
       <div className="page" aria-hidden={study ? true : undefined} inert={study ? true : undefined}>
         <header className="masthead">
           <div>
-            <p className="masthead__eyebrow">Interactive exhibition · Six instruments</p>
+            <p className="masthead__eyebrow">Interactive exhibition · Ten instruments</p>
             <h1>Glass Studies</h1>
             <p className="masthead__lede">An exploration of light, material, and interaction. Small refracting instruments, each with its own way of moving.</p>
           </div>

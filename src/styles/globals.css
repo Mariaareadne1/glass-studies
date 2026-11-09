@@ -883,3 +883,67 @@ button {
     text-shadow: 0 0 2px rgba(10, 8, 24, 0.95), 0 0 12px rgba(10, 8, 24, 0.8);
   }
 }
+
+/* ---------------------------------------------------------------- V3 instruments */
+.readout--side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.readout__eyebrow {
+  font-family: var(--font-mono);
+  font-size: max(12px, calc(9.5px / var(--stage-scale, 1)));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.readout__big {
+  font-size: max(30px, calc(24px / var(--stage-scale, 1)));
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.readout__meta {
+  font-family: var(--font-mono);
+  font-size: max(12px, calc(9.5px / var(--stage-scale, 1)));
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+}
+
+.stage-caption--stack {
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.readout__big--sm {
+  font-size: max(24px, calc(19px / var(--stage-scale, 1)));
+}
+
+.readout--center {
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  text-align: center;
+}
+
+.axis-label {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: max(11px, calc(9px / var(--stage-scale, 1)));
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  pointer-events: none;
+}

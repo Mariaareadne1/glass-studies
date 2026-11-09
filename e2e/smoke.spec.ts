@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { collectErrors } from './helpers';
 
-test('gallery renders all six studies without errors and switches theme', async ({ page }) => {
+test('gallery renders every study without errors and switches theme', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Glass Studies' })).toBeVisible();
-  await expect(page.locator('article.study')).toHaveCount(6);
-  for (const name of ['Solar', 'Atmosphere', 'Halo', 'Thermal', 'Modes', 'Forecast']) {
+  await expect(page.locator('article.study')).toHaveCount(10);
+  for (const name of ['Solar', 'Atmosphere', 'Halo', 'Thermal', 'Modes', 'Forecast', 'Iris', 'Droplet', 'Drift', 'Beads']) {
     await expect(page.getByRole('heading', { name })).toBeVisible();
   }
   const backends = await page.locator('.glass-stage').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.backend));
