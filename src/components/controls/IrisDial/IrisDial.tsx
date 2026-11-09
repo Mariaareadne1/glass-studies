@@ -28,7 +28,7 @@ export function IrisDial({ env }: { env: EnvironmentKind }) {
   usePointerDrag(overlayRef, scaleRef, {
     onStart(p, e) {
       if (!ctrl.hitDial(p.x, p.y)) return false;
-      ctrl.dragging = true;
+      ctrl.setDragging(true);
       sliderRef.current?.focus({ preventScroll: true });
       turn.current = { angle: angleOf(p.x, p.y), total: 0, from: ctrl.display.x, t: e.timeStamp, vel: 0 };
       ctrl.touch(0.4);
@@ -50,7 +50,7 @@ export function IrisDial({ env }: { env: EnvironmentKind }) {
       irisStore.set(Math.round(Math.min(LAST, Math.max(0, raw))));
     },
     onEnd(_p, cancelled) {
-      ctrl.dragging = false;
+      ctrl.setDragging(false);
       const target = cancelled ? irisStore.get() : detentAfterRelease(ctrl.display.x, turn.current.vel);
       irisStore.set(target);
       ctrl.setStop(target);

@@ -1,5 +1,10 @@
 # Progress
 
+## V3 new instruments and Glass Loaders (branch v3/new-studies)
+- **M1 (f30d3dd):** Iris, Droplet, Drift, Beads with unit and E2E interaction tests.
+- **M2 (b994767):** Glass Loaders section (Pixel Morph, Tide Fill, Orbit, Crystallize), shared LoopController, off-screen rest, reduced-motion variants.
+- **M3:** perf probes (`perf.mjs --all`, `perf-loaders.mjs`), mobile title fix, docs and media (docs/media/v3).
+
 ## V2.1 material polish (branch v2.1/material-polish)
 - Removed Halo's decorative orbit ring (the only ring ornament in the build).
 - Rounded-square geometry: Atmosphere tray/tile/wells (radii 44/30/27, concentric) and Thermal housing/thumb/card (24/13/28); focus outlines follow.

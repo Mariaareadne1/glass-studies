@@ -1,6 +1,6 @@
-# Future studies (V3 candidates, not implemented)
+# Future studies
 
-Ideas recorded after V2 so the six existing instruments stayed the focus.
+Ideas recorded after V2. **Implemented in V3:** Aperture (as **Iris**), Joystick (as **Drift**, a thrown puck rather than a tethered one), Range (as **Beads**, with a glass bridge instead of a shader smooth-union) and Press (as **Droplet**). Still open: Liquid fill (partly explored by the Tide Fill loader) and Mixer.
 
 - **Aperture.** A glass camera-aperture dial. Blades are separate glass layers that rotate and overlap, so refraction stacks where they cross. Value = f-stop.
 - **Joystick.** A 2-D glass puck on a spring tether. Deformation follows the 2-D velocity vector, and the edge light points along the direction of travel.

@@ -84,3 +84,20 @@ Not verified in V2: physical devices, low-end GPUs, and the full interaction sui
 | Contrast of in-glass type | ✅ 7.5–13.8:1 on Pearl (sampled from screenshots with the DOM text hidden) |
 
 Not verified: physical devices, low-end GPUs, and the full interaction suite on WebKit and Firefox (smoke only).
+
+---
+
+## V3 instruments and Glass Loaders QA (2026-11-08, branch `v3/new-studies`)
+
+| Check | Result |
+| --- | --- |
+| Type check / lint | ✅ clean / 0 errors (the same 5 advisory warnings as before V3; none from new code) |
+| Unit and component tests | ✅ 91 / 91. New: `instruments.test.ts` (Iris mapping, detents and rubber-banding; Droplet hold/confirm/drain/rest and squash; Drift friction, wall bounce, speed cap, value round-trip, single settle; Beads no-crossing, 2 h gap, nearest bead, bridge) and `loaders.test.ts` (seamless tide, orbit closes and never reverses, crystal clear at the loop point, morph sequence per beat, every loader renders within pass limits in light, dark and reduced motion) |
+| E2E (production build) | ✅ 25 / 25. New `instruments.spec.ts`: Iris ring turn, wheel and keys; Droplet short press vs full hold (pointer and Space) with live-region announcement; Drift drag, throw (keeps drifting after release, settles in bounds) and keys; Beads drag, clamp at the gap, keys and dynamic `aria-valuemax`. New `loaders.spec.ts`: all four loaders animate and expose `role=status`, the loop stops when they scroll away, focused view without a reset control, reduced-motion loaders still show a calm change. Smoke counts updated (10 studies + 4 loaders) |
+| Performance, original probe (six studies animating, DPR 2) | ✅ mean 16.67 ms, p99 16.8 ms, 0 frames over 33 ms; loop idle before and after |
+| Performance, loaders on screen (1440×900 @2, and 390×844 @3) | ✅ mean 16.67 ms, p99 16.8 ms, 0 frames over 33 ms; loop idle 1.5 s after scrolling away (`scripts/perf-loaders.mjs`) |
+| Stress test: every stage on screen at once (`perf.mjs --all`, 1440×4300 @2, 14 contexts) | ⚠️ mean 18.7 ms, p95/p99 33.3 ms, 7 frames over 33 ms. Not reachable in a normal viewport; recorded as the upper bound |
+| Mobile layout (320, 375, 390, 768 px) | ✅ no horizontal overflow; loader titles tightened on phones |
+| Visual | Light and dark captures of every new study (rest and active) and frames across one loop of each loader: `docs/media/v3/` |
+
+Known limits: the Droplet hold is timed in frame time, so a device rendering below 20 fps would take proportionally longer to fill. Not verified on physical devices; WebKit and Firefox run the smoke suite only.

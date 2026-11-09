@@ -109,3 +109,17 @@ Hit targets are unchanged. Focus outlines follow the new radii (`RadioSlots` `sl
 - A delicate glint sits in the lit corner, and a faint internal highlight sweep crosses the body.
 
 **Ink.** Neutral LED pixels and in-glass type use pearl-grey `#4A476B` / `#2C2A40` on light studios; state colours keep their hue. Midnight keeps white. Helpers: `glassInk`, `glassTintedInk`, `ledGlow` in `shared/ink.ts`.
+
+## V3 instruments and loaders
+
+All new pieces reuse `materialPresets` (`CARD`, `THUMB`, `TRACK`, `BEAD`, `smoked`, `withTint`, `withGlow`), the V2.1 light-mode pass, the shared springs, `EdgeLight`, `Deformer`, `PixelMorpher` and `drawPixels` with `glassInk`/`ledGlow`.
+
+| Piece | Glass | Motion | Pixel art |
+| --- | --- | --- | --- |
+| Iris | housing ring (CARD, bevel 54, milk 0.95), clear lens (frost 0.02, thickness 48), grip bead | `travel` spring into eight detents; edge impulse per detent | LED sun behind the aperture |
+| Droplet | dish (TRACK), drop (THUMB, bevel 54, thickness 50, halo with fill) | `deform` spring for pressure (overshoot on release) | drop ⇄ check morph |
+| Drift | pad (TRACK, radius 44), puck (THUMB, radius 22, thickness 40) | `DriftBody` (friction 3/s, restitution 0.42), `travel` springs for keyboard, `deform` squash on impact | rest / leaf / wind / bolt / diamond by quadrant |
+| Beads | track (radius 12), two beads (r 20), bridge slab | stiff `track` springs, `Deformer` stretch per bead | sun and moon in the beads |
+| Loaders | tile r 44 (Morph, Crystallize), vessel r 40 (Tide), lens r 74 + bead r 21 (Orbit) | `LoopController` phases; Orbit adds one sine per lap | dots / hourglass / diamond / drop, snow crystal |
+
+Geometry follows the V2.1 rounded-square family (concentric radii; circles only where the object is round).

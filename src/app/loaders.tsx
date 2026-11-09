@@ -1,15 +1,5 @@
-import type { EnvironmentKind } from '../glass/types';
-import { LoaderStage } from '../components/loaders/LoaderStage';
-import { CrystalLoader } from '../components/loaders/crystalLoader';
-import { MorphLoader } from '../components/loaders/morphLoader';
-import { OrbitLoader } from '../components/loaders/orbitLoader';
-import { TideLoader } from '../components/loaders/tideLoader';
+import { CrystalLoaderStage, MorphLoaderStage, OrbitLoaderStage, TideLoaderStage } from '../components/loaders/LoaderStages';
 import type { StudyDef } from './studies';
-
-const MorphLoaderStage = ({ env }: { env: EnvironmentKind }) => <LoaderStage env={env} create={() => new MorphLoader()} label="Pixel Morph loader" testid="loader-morph" />;
-const TideLoaderStage = ({ env }: { env: EnvironmentKind }) => <LoaderStage env={env} create={() => new TideLoader()} label="Tide Fill loader" testid="loader-tide" />;
-const OrbitLoaderStage = ({ env }: { env: EnvironmentKind }) => <LoaderStage env={env} create={() => new OrbitLoader()} label="Orbit loader" testid="loader-orbit" />;
-const CrystalLoaderStage = ({ env }: { env: EnvironmentKind }) => <LoaderStage env={env} create={() => new CrystalLoader()} label="Crystallize loader" testid="loader-crystal" />;
 
 /** Glass Loaders: looping, non-interactive pieces built from the same glass, motion and pixel systems. */
 export const LOADERS: StudyDef[] = [

@@ -23,7 +23,7 @@ export function DriftPad({ env }: { env: EnvironmentKind }) {
 
   useEffect(() => ctrl.setReducedMotion(reducedMotion), [ctrl, reducedMotion]);
   useEffect(() => {
-    ctrl.onSettle = (v) => driftStore.set(round(v));
+    ctrl.setOnSettle((v) => driftStore.set(round(v)));
   }, [ctrl]);
   // external changes (keyboard, reset) glide the puck; its own throws already match
   useEffect(() => {

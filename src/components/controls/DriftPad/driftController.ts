@@ -87,6 +87,10 @@ export class DriftController implements StageController {
   /** Reports the settled value after a throw or glide. */
   onSettle: (v: DriftValue) => void = () => undefined;
 
+  setOnSettle(fn: (v: DriftValue) => void): void {
+    this.onSettle = fn;
+  }
+
   constructor(v: DriftValue) {
     const p = toPosition(v);
     this.body = new DriftBody(p.x, p.y, DRIFT_BOUNDS);

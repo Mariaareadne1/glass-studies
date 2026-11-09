@@ -58,3 +58,15 @@ Every stage has a DOM overlay scaled to the stage, so pointer coordinates divide
 ## 8. What distinguishes it from the references
 
 The references are general-purpose glass *effects*. Glass Studies is a set of *instruments*: the glass is one layer of a system where motion, light and state are coupled. The edge light is driven by distance travelled. The icon is scrubbed by the thumb. Ambient light is derived from the value. Deformation comes from physics and lives inside the refractive geometry. And it is honest about what it is: refraction of content the stage owns, sample data labelled as sample data, and a fallback that says so.
+
+## 9. V3: four more instruments and the Glass Loaders
+
+The test for each new piece was the same as for the first six: it had to be an instrument with one physical idea, built from the shared parts rather than added beside them.
+
+- **Iris** is *turned*, not pointed at. Rotation is accumulated from the hand (unwrapped angle deltas), so you can grip anywhere on the ring and keep turning, which is how a lens ring feels. The detents are the springs' rest points; passing one sends an impulse into the existing edge light, so the "click" is light rather than sound. The blades are drawn beneath the glass and the scene behind them (an LED sun) is clipped by the aperture, so the lens genuinely magnifies a hole.
+- **Droplet** separates timing from rendering: a small `HoldGesture` owns hold, confirm, rest and drain, and is unit-tested on its own. Pressure is an under-damped spring, so the drop bounces back into shape on release without any scripted keyframes. Confirming the moment the drop is full, rather than on release, removes the "did it count?" doubt common to hold buttons.
+- **Drift** is the first free-moving body in the collection. `DriftBody` integrates the throw with exponential friction and loses 58% of its speed at each wall; the wall impact snaps a squash spring, so the compression comes from the same deformation language as the thumbs.
+- **Beads** needed the "merge" from the V3 notes without an SDF smooth-union in the shader. A third glass slab spans the gap and thickens as the beads approach; it reads as liquid bridging between them while staying within four shapes per pass.
+- **The loaders** share a `LoopController`: a private clock, phases that close exactly, and a start offset so no loader first appears on an empty frame. They ask for frames forever, but the stage stops ticking them off screen, so a page full of loaders costs nothing until you scroll to it. Under reduced motion each one keeps a calm signal (a breathing light) without any travel.
+
+New LED icons (drop, check, hourglass, dots, diamond) were added to the same 12 × 12 grid system, and every new piece uses the V2.1 pearl ink so it reads on both studios.

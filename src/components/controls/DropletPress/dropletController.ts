@@ -45,6 +45,10 @@ export class DropletController implements StageController {
   /** Called once per completed hold. */
   onConfirm: () => void = () => undefined;
 
+  setOnConfirm(fn: () => void): void {
+    this.onConfirm = fn;
+  }
+
   attach(invalidate: () => void): void {
     this.invalidate = invalidate;
   }

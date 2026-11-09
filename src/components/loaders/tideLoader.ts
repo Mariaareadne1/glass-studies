@@ -67,7 +67,8 @@ export class TideLoader extends LoopController {
       g.strokeStyle = rgba(mixRGB(SHALLOW, [1, 1, 1], 0.7), dark ? 0.75 : 0.95);
       g.lineWidth = 2.2;
       g.beginPath();
-      for (let x = left; x <= right; x += 4) (x === left ? g.moveTo(x, surface(x)) : g.lineTo(x, surface(x)));
+      g.moveTo(left, surface(left));
+      for (let x = left + 4; x <= right; x += 4) g.lineTo(x, surface(x));
       g.stroke();
       // LED bubbles rising through the water
       if (!this.reducedMotion) {

@@ -71,6 +71,10 @@ export class IrisController implements StageController {
   private lastTurn = 0;
   dragging = false;
 
+  setDragging(on: boolean): void {
+    this.dragging = on;
+  }
+
   constructor(stop: number) {
     this.display = new Spring(stop, SPRINGS.travel);
     this.lastDetent = stop;

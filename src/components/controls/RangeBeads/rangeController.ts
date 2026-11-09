@@ -52,6 +52,10 @@ export class RangeController implements StageController {
   private reducedMotion = false;
   dragging: BeadId | null = null;
 
+  setDragging(id: BeadId | null): void {
+    this.dragging = id;
+  }
+
   constructor(r: RangeValue) {
     this.start = new Spring(hourToX(r.start), SPRINGS.track);
     this.end = new Spring(hourToX(r.end), SPRINGS.track);

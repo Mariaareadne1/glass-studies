@@ -32,7 +32,7 @@ export function RangeBeads({ env }: { env: EnvironmentKind }) {
     onStart(p) {
       if (!ctrl.hitTrack(p.x, p.y)) return false;
       const id = nearestBead(rangeStore.get(), xToHour(p.x));
-      ctrl.dragging = id;
+      ctrl.setDragging(id);
       // grabbing a bead keeps the offset under the finger; a press on the track pulls it there
       const dx = p.x - ctrl.beadX(id);
       grab.current = Math.abs(dx) <= RANGE.bead + 6 ? dx : 0;
@@ -45,7 +45,7 @@ export function RangeBeads({ env }: { env: EnvironmentKind }) {
       if (ctrl.dragging) onDrag(ctrl.dragging, p.x);
     },
     onEnd() {
-      ctrl.dragging = null;
+      ctrl.setDragging(null);
       ctrl.setRange(rangeStore.get());
       ctrl.touch(0.3);
     },

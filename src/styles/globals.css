@@ -1006,4 +1006,13 @@ button {
   .gallery--loaders .caption__hint {
     display: none;
   }
+  .gallery--loaders .caption__title {
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    overflow-wrap: anywhere;
+  }
+}
+
+.gallery--loaders .caption__title {
+  letter-spacing: 0.2em;
 }

@@ -21,10 +21,10 @@ export function DropletPress({ env }: { env: EnvironmentKind }) {
 
   useEffect(() => ctrl.setReducedMotion(reducedMotion), [ctrl, reducedMotion]);
   useEffect(() => {
-    ctrl.onConfirm = () => {
+    ctrl.setOnConfirm(() => {
       dropletStore.set((n) => n + 1);
       setStatus('released');
-    };
+    });
   }, [ctrl]);
   // the status line returns to its prompt once the gesture has fully rested
   useEffect(() => {
