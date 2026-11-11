@@ -6,7 +6,7 @@
 >
 > **V2.1 material polish** (now on `main`): lighter, clearer pearl glass on light studios with dark pearl-grey ink, rounded-square trays for Atmosphere and Thermal, and Halo's orbit ring removed. Before/after pairs are in [docs/media/v2.1](docs/media/v2.1).
 >
-> **V3, Instruments & Loaders** (branch `v3/glass-instruments`, built on `v3/new-studies`): fifteen new studies in three collections (**Controls**, **Loaders**, **Optics & Materials**) next to the original six. Several do real work: a video scrubber over real decoded frames, a camera capture with a local image pipeline, an in-browser audio render with WAV export. See [V3 collections](#v3-collections).
+> **V3, Instruments & Loaders** (now on `main`; developed on `v3/glass-instruments`): fifteen new studies in three collections (**Controls**, **Loaders**, **Optics & Materials**) next to the original six. Several do real work: a video scrubber over real decoded frames, a camera capture with a local image pipeline, an in-browser audio render with WAV export. See [V3 collections](#v3-collections).
 >
 > | V1 | V2 |
 > | --- | --- |

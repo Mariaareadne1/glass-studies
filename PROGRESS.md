@@ -14,7 +14,7 @@ Built on v3/new-studies (d62bc60). Baseline for pixel regression: worktree ../gl
 - E2E: 49/49 passed (one worker, Chromium + mobile + WebKit + Firefox smoke, 2.1 min). Perf: 60 fps everywhere measured, Caustic after the footprint-only photon map. Parallel runs on this Mac stall when the machine idles/sleeps (wall time 17 min for 7 tests that each take 2–9 s; a browser launch timed out after 180 s); not reproducible serially or under load. Recorded as an environment limitation, not hidden.
 
 ### Resume here
-- Optional: merge v3/glass-instruments into main (not done; needs the owner's go-ahead).
+- Merged: main fast-forwarded to v3/glass-instruments (c6af111) on 2026-11-11 at the owner's request; unit 137/137 and smoke + Scrubber + Stage 4 E2E re-run on main.
 - Optional: deploy (repo is private; not configured).
 
 ## V3 new instruments and Glass Loaders (branch v3/new-studies)
